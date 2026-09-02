@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SleepRouteImport } from './routes/sleep'
 import { Route as WorkoutRouteImport } from './routes/workout'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,9 +26,19 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecoveryRoute = RecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SleepRoute = SleepRouteImport.update({
+  id: '/sleep',
+  path: '/sleep',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkoutRoute = WorkoutRouteImport.update({
@@ -38,34 +50,49 @@ const WorkoutRoute = WorkoutRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/profile': typeof ProfileRoute
+  '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
+  '/sleep': typeof SleepRoute
   '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/profile': typeof ProfileRoute
+  '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
+  '/sleep': typeof SleepRoute
   '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/profile': typeof ProfileRoute
+  '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
+  '/sleep': typeof SleepRoute
   '/workout': typeof WorkoutRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/profile' | '/reports' | '/workout'
+  fullPaths: '/' | '/profile' | '/recovery' | '/reports' | '/sleep' | '/workout'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/profile' | '/reports' | '/workout'
-  id: '__root__' | '/' | '/profile' | '/reports' | '/workout'
+  to: '/' | '/profile' | '/recovery' | '/reports' | '/sleep' | '/workout'
+  id:
+    | '__root__'
+    | '/'
+    | '/profile'
+    | '/recovery'
+    | '/reports'
+    | '/sleep'
+    | '/workout'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProfileRoute: typeof ProfileRoute
+  RecoveryRoute: typeof RecoveryRoute
   ReportsRoute: typeof ReportsRoute
+  SleepRoute: typeof SleepRoute
   WorkoutRoute: typeof WorkoutRoute
 }
 
@@ -85,11 +112,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recovery': {
+      id: '/recovery'
+      path: '/recovery'
+      fullPath: '/recovery'
+      preLoaderRoute: typeof RecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sleep': {
+      id: '/sleep'
+      path: '/sleep'
+      fullPath: '/sleep'
+      preLoaderRoute: typeof SleepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workout': {
@@ -105,7 +146,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProfileRoute: ProfileRoute,
+  RecoveryRoute: RecoveryRoute,
   ReportsRoute: ReportsRoute,
+  SleepRoute: SleepRoute,
   WorkoutRoute: WorkoutRoute,
 }
 export const routeTree = rootRouteImport
