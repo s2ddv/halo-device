@@ -57,7 +57,7 @@ function Gauge({
   return (
     <div className="relative z-10 flex flex-1 flex-col items-center justify-center py-4">
       <div className="relative flex h-20 w-32 justify-center overflow-hidden">
-        <svg className="absolute bottom-0 h-32 w-32" viewBox="0 0 100 100">
+        <svg className="absolute top-0 h-32 w-32" viewBox="0 0 100 100">
           <path
             d="M 10,50 A 40,40 0 0,1 90,50"
             fill="none"
@@ -235,7 +235,7 @@ function Dashboard() {
             <CardHeader label="Recordes Esportivos" date="01/08/2025" />
             <div className="relative z-10 flex flex-1 flex-col items-center justify-center py-4">
               <div className="relative flex h-20 w-32 justify-center overflow-hidden">
-                <svg className="absolute bottom-0 h-32 w-32" viewBox="0 0 100 100">
+                <svg className="absolute top-0 h-32 w-32" viewBox="0 0 100 100">
                   <path
                     d="M 10,50 A 40,40 0 0,1 90,50"
                     fill="none"
