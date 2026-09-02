@@ -18,8 +18,8 @@ export function Icon({ name, className }: { name: string; className?: string }) 
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background">
-      <header className="fixed inset-x-0 top-0 z-50 mx-auto w-full max-w-md bg-background/80 pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-background">
+      <header className="fixed inset-x-0 top-0 z-50 mx-auto w-full max-w-[430px] bg-background/80 pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.4)] backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between px-container-padding">
           <Link to="/" className="flex items-center gap-2">
             <span className="h-6 w-2 rounded-full bg-primary" />
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="relative flex w-full flex-1 flex-col pb-32 pt-16">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md bg-surface-container-highest/90 pb-safe shadow-[0_-1px_12px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+      <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[430px] bg-surface-container-highest/90 pb-safe shadow-[0_-1px_12px_rgba(0,0,0,0.4)] backdrop-blur-xl">
         <div className="flex h-20 items-center justify-around px-4">
           {tabs.map((tab) => (
             <Link

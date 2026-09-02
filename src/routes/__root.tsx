@@ -16,7 +16,7 @@ import { AppShell } from "../components/AppShell";
 function NotFoundComponent() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+      <div className="max-w-[430px] text-center">
         <h1 className="font-numeric text-display-lg text-on-background">404</h1>
         <h2 className="mt-4 font-display text-title-md text-on-surface">Página não encontrada</h2>
         <p className="mt-2 text-body-sm text-on-surface-variant">
@@ -44,7 +44,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+      <div className="max-w-[430px] text-center">
         <h1 className="font-display text-title-md text-on-surface">Esta tela não carregou</h1>
         <p className="mt-2 text-body-sm text-on-surface-variant">
           Algo deu errado. Tente novamente ou volte ao início.
