@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as WorkoutRouteImport } from './routes/workout'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkoutRoute = WorkoutRouteImport.update({
+  id: '/workout',
+  path: '/workout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reports': typeof ReportsRoute
+  '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reports': typeof ReportsRoute
+  '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/reports': typeof ReportsRoute
+  '/workout': typeof WorkoutRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/reports'
+  fullPaths: '/' | '/reports' | '/workout'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/reports'
-  id: '__root__' | '/' | '/reports'
+  to: '/' | '/reports' | '/workout'
+  id: '__root__' | '/' | '/reports' | '/workout'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ReportsRoute: typeof ReportsRoute
+  WorkoutRoute: typeof WorkoutRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workout': {
+      id: '/workout'
+      path: '/workout'
+      fullPath: '/workout'
+      preLoaderRoute: typeof WorkoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ReportsRoute: ReportsRoute,
+  WorkoutRoute: WorkoutRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
