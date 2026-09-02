@@ -282,11 +282,7 @@ function TodayScore() {
             <div key={key} className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Icon
-                    name={meta.icon}
-                    className="text-[16px]"
-                    // cor do sub-score
-                  />
+                  <Icon name={meta.icon} className="text-[16px] text-on-surface-variant" />
                   <span className="text-body-sm text-on-background">{meta.label}</span>
                 </div>
                 <span className="font-numeric text-body-sm text-on-background">{value}/100</span>
