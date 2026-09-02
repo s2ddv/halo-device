@@ -68,8 +68,9 @@ export async function connectBand(handlers: {
     const batteryService = await server.getPrimaryService(BATTERY_SERVICE);
     const batteryChar = await batteryService.getCharacteristic(BATTERY_LEVEL);
     const value = await batteryChar.readValue();
-    batteryLevel = value.getUint8(0);
-    handlers.onBattery?.(batteryLevel);
+    const level: number = value.getUint8(0);
+    batteryLevel = level;
+    handlers.onBattery?.(level);
   } catch {
     // battery service unavailable
   }
