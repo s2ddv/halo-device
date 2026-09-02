@@ -183,11 +183,35 @@ function Dashboard() {
           </Link>
 
           {/* Sono */}
-          <Link to="/reports" className={`${cardBase} min-h-[220px]`}>
+          <Link to="/sleep" className={`${cardBase} min-h-[220px]`}>
             <Glow colorVar="--sleep" />
             <CardHeader label="Sono" date="01/08/2025" />
             <Gauge value="76" label="Bom" arc="M 10,50 A 40,40 0 0,1 70,15" colorVar="--sleep" />
             <CardFooter title="Sono profundo" subtitle="REM, leve e profundo" />
+          </Link>
+
+          {/* Recuperação e estresse */}
+          <Link to="/recovery" className={`${cardBase} min-h-[200px]`}>
+            <Glow colorVar="--activity" />
+            <CardHeader label="Recuperação e estresse" date="Hoje" />
+            <div className="relative z-10 flex flex-1 items-center justify-center gap-6 py-4">
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-numeric text-[28px] font-bold leading-none text-activity">
+                  78
+                </span>
+                <span className="font-numeric text-[10px] text-on-surface-variant">
+                  Recuperação
+                </span>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-numeric text-[28px] font-bold leading-none text-sport">
+                  32
+                </span>
+                <span className="font-numeric text-[10px] text-on-surface-variant">Estresse</span>
+              </div>
+            </div>
+            <CardFooter title="Recuperação" subtitle="Prontidão do corpo, de 0 a 100" />
           </Link>
 
           {/* Atividades */}
