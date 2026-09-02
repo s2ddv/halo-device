@@ -111,7 +111,8 @@ const LEVEL_RANGES: Array<[number, number]> = [
 
 export function levelFromScore(score: number): number {
   for (let i = LEVEL_RANGES.length - 1; i >= 0; i--) {
-    if (score >= LEVEL_RANGES[i][0]) return i;
+    const range = LEVEL_RANGES[i];
+    if (range && score >= range[0]) return i;
   }
   return 0;
 }
@@ -124,9 +125,10 @@ export function levelProgress(score: number): {
   toNext: number;
 } {
   const level = levelFromScore(score);
-  const [min, max] = LEVEL_RANGES[level];
+  const [min, max] = LEVEL_RANGES[level] ?? [0, 99];
   const pct = Math.round(((score - min) / (max - min + 1)) * 100);
   return { level, min, max, pct, toNext: level === 10 ? 0 : max + 1 - score };
+}
 }
 
 export function isRanked(activeDays: number): boolean {
