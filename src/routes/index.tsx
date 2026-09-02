@@ -4,13 +4,13 @@ import { Icon } from "@/components/AppShell";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Vital — Painel de saúde da sua BAND" },
+      { title: "HALO — Painel de saúde da sua BAND" },
       {
         name: "description",
         content:
-          "Acompanhe health score, frequência cardíaca, sono, atividades, ciclo e SpO2 medidos pela sua pulseira BAND.",
+          "Acompanhe health score, frequência cardíaca, sono, atividades e SpO2 medidos pela sua pulseira BAND.",
       },
-      { property: "og:title", content: "Vital — Painel de saúde da sua BAND" },
+      { property: "og:title", content: "HALO — Painel de saúde da sua BAND" },
       {
         property: "og:description",
         content: "Health score, batimentos, sono, atividades e SpO2 em um só painel.",
@@ -227,31 +227,6 @@ function Dashboard() {
             <CardFooter title="Atividades" subtitle="Passos, calorias e treinos" />
           </Link>
 
-          {/* Ciclo menstrual */}
-          <Link to="/reports" className={`${cardBase} min-h-[200px]`}>
-            <Glow colorVar="--cycle" />
-            <CardHeader label="Ciclo menstrual" date="01/08/2025" />
-            <div className="relative z-10 flex flex-1 flex-col justify-center gap-4 py-2">
-              <div className="flex justify-between px-2">
-                {[
-                  { icon: "edit", label: "Registros", value: "12" },
-                  { icon: "schedule", label: "Faltam", value: "2" },
-                  { icon: "favorite", label: "bpm", value: "88" },
-                ].map((s) => (
-                  <div key={s.label} className="flex flex-col items-center gap-1">
-                    <Icon name={s.icon} className="text-[18px] text-cycle" />
-                    <span className="font-numeric text-[10px] text-on-surface-variant">
-                      {s.label}
-                    </span>
-                    <span className="font-display text-title-md text-on-background">
-                      {s.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <CardFooter title="Ciclo menstrual" subtitle="Conheça seu ritmo natural" />
-          </Link>
 
           {/* Recordes esportivos */}
           <Link to="/workout" className={`${cardBase} min-h-[220px]`}>
@@ -299,12 +274,6 @@ function Dashboard() {
             </div>
             <CardFooter title="Oxigênio no sangue" subtitle="Saturação SpO2" />
           </Link>
-        </div>
-
-        <div className="flex items-center justify-center py-6">
-          <span className="font-display text-[20px] text-on-background">
-            E + 5 funcionalidades
-          </span>
         </div>
       </div>
     </div>
