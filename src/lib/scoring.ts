@@ -129,7 +129,6 @@ export function levelProgress(score: number): {
   const pct = Math.round(((score - min) / (max - min + 1)) * 100);
   return { level, min, max, pct, toNext: level === 10 ? 0 : max + 1 - score };
 }
-}
 
 export function isRanked(activeDays: number): boolean {
   return activeDays >= MIN_ACTIVE_DAYS;
