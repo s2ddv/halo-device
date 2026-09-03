@@ -1,19 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { Icon } from "@/components/AppShell";
+import { LineChart, MinAvgMax, MultiDaySelector } from "@/components/MetricChart";
+import { lastDays, stats, temperatureSeries } from "@/lib/metrics";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Relatórios — Vital" },
+      { title: "Relatórios — HALO" },
       {
         name: "description",
         content:
-          "Histórico semanal de batimentos, sono, SpO2 e ciclo sincronizado da sua pulseira BAND.",
+          "Histórico semanal de batimentos, sono, SpO2, atividades e temperatura corporal da sua pulseira BAND.",
       },
-      { property: "og:title", content: "Relatórios — Vital" },
+      { property: "og:title", content: "Relatórios — HALO" },
       {
         property: "og:description",
-        content: "Histórico semanal de batimentos, sono, SpO2 e ciclo.",
+        content: "Histórico semanal de batimentos, sono, SpO2 e temperatura corporal.",
       },
     ],
   }),
@@ -30,6 +33,8 @@ const series = [
 const days = ["S", "T", "Q", "Q", "S", "S", "D"];
 
 function Reports() {
+  const [tab, setTab] = useState<"resumo" | "temperatura">("resumo");
+
   return (
     <div className="flex w-full flex-col gap-md px-container-padding pt-md">
       <header className="flex flex-col gap-1">
@@ -38,6 +43,85 @@ function Reports() {
         </span>
         <h1 className="font-display text-headline-mobile text-on-background">Relatórios</h1>
       </header>
+
+      <div className="flex rounded-full bg-surface-container-high p-1">
+        {(
+          [
+            { id: "resumo", label: "Resumo" },
+            { id: "temperatura", label: "Temperatura" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`flex-1 rounded-full py-2.5 font-numeric text-label-caps uppercase tracking-widest transition-colors ${
+              tab === t.id ? "bg-primary text-primary-foreground" : "text-on-surface-variant"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "temperatura" ? <TemperatureTab /> : <SummaryTab />}
+    </div>
+  );
+}
+
+function TemperatureTab() {
+  const dayList = useMemo(() => lastDays(14), []);
+  const [selected, setSelected] = useState<string[]>(dayList.slice(-3).map((d) => d.key));
+  const chart = useMemo(
+    () =>
+      dayList
+        .filter((d) => selected.includes(d.key))
+        .map((d) => ({ key: d.key, points: temperatureSeries(d.key) })),
+    [dayList, selected],
+  );
+  const s = stats(chart.flatMap((c) => c.points));
+  const fmt = (v: number) => v.toFixed(1).replace(".", ",");
+
+  function toggle(key: string) {
+    setSelected((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key].sort(),
+    );
+  }
+
+  return (
+    <>
+      <MultiDaySelector days={dayList} selected={selected} onToggle={toggle} />
+      {chart.length > 0 && (
+        <MinAvgMax
+          min={s.min}
+          avg={s.avg}
+          max={s.max}
+          unit="°C"
+          colorVar="--cycle"
+          format={fmt}
+        />
+      )}
+      <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
+        <div className="flex items-center gap-2">
+          <Icon name="device_thermostat" className="text-[16px] text-on-surface-variant" />
+          <span className="font-numeric text-label-caps text-on-background">
+            Temperatura ao longo do dia
+          </span>
+        </div>
+        <LineChart series={chart} colorVar="--cycle" format={fmt} />
+      </section>
+      <p className="text-body-sm text-on-surface-variant">
+        A temperatura da pele varia naturalmente ao longo do dia. Compare vários dias para
+        identificar seu padrão pessoal.
+      </p>
+    </>
+  );
+}
+
+function SummaryTab() {
+  return (
+    <>
+
 
       <div className="flex flex-col gap-sm">
         {series.map((s) => (

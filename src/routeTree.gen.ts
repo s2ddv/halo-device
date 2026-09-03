@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HeartRateRouteImport } from './routes/heart-rate'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SleepRouteImport } from './routes/sleep'
+import { Route as Spo2RouteImport } from './routes/spo2'
 import { Route as WorkoutRouteImport } from './routes/workout'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HeartRateRoute = HeartRateRouteImport.update({
+  id: '/heart-rate',
+  path: '/heart-rate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -41,6 +48,11 @@ const SleepRoute = SleepRouteImport.update({
   path: '/sleep',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Spo2Route = Spo2RouteImport.update({
+  id: '/spo2',
+  path: '/spo2',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkoutRoute = WorkoutRouteImport.update({
   id: '/workout',
   path: '/workout',
@@ -49,50 +61,76 @@ const WorkoutRoute = WorkoutRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/heart-rate': typeof HeartRateRoute
   '/profile': typeof ProfileRoute
   '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
   '/sleep': typeof SleepRoute
+  '/spo2': typeof Spo2Route
   '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/heart-rate': typeof HeartRateRoute
   '/profile': typeof ProfileRoute
   '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
   '/sleep': typeof SleepRoute
+  '/spo2': typeof Spo2Route
   '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/heart-rate': typeof HeartRateRoute
   '/profile': typeof ProfileRoute
   '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
   '/sleep': typeof SleepRoute
+  '/spo2': typeof Spo2Route
   '/workout': typeof WorkoutRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/profile' | '/recovery' | '/reports' | '/sleep' | '/workout'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/profile' | '/recovery' | '/reports' | '/sleep' | '/workout'
-  id:
-    | '__root__'
+  fullPaths:
     | '/'
+    | '/heart-rate'
     | '/profile'
     | '/recovery'
     | '/reports'
     | '/sleep'
+    | '/spo2'
+    | '/workout'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/heart-rate'
+    | '/profile'
+    | '/recovery'
+    | '/reports'
+    | '/sleep'
+    | '/spo2'
+    | '/workout'
+  id:
+    | '__root__'
+    | '/'
+    | '/heart-rate'
+    | '/profile'
+    | '/recovery'
+    | '/reports'
+    | '/sleep'
+    | '/spo2'
     | '/workout'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HeartRateRoute: typeof HeartRateRoute
   ProfileRoute: typeof ProfileRoute
   RecoveryRoute: typeof RecoveryRoute
   ReportsRoute: typeof ReportsRoute
   SleepRoute: typeof SleepRoute
+  Spo2Route: typeof Spo2Route
   WorkoutRoute: typeof WorkoutRoute
 }
 
@@ -103,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/heart-rate': {
+      id: '/heart-rate'
+      path: '/heart-rate'
+      fullPath: '/heart-rate'
+      preLoaderRoute: typeof HeartRateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -133,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SleepRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/spo2': {
+      id: '/spo2'
+      path: '/spo2'
+      fullPath: '/spo2'
+      preLoaderRoute: typeof Spo2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workout': {
       id: '/workout'
       path: '/workout'
@@ -145,10 +197,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HeartRateRoute: HeartRateRoute,
   ProfileRoute: ProfileRoute,
   RecoveryRoute: RecoveryRoute,
   ReportsRoute: ReportsRoute,
   SleepRoute: SleepRoute,
+  Spo2Route: Spo2Route,
   WorkoutRoute: WorkoutRoute,
 }
 export const routeTree = rootRouteImport
