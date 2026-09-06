@@ -517,34 +517,10 @@ function Ranking() {
         </div>
       </section>
 
-      <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-        <span className="px-md pt-md font-numeric text-label-caps text-on-background">
-          Ranking geral
-        </span>
-        {leaderboard.map((p) => (
-          <div
-            key={p.name}
-            className={`flex items-center gap-md px-md py-3 ${
-              p.isMe ? "bg-primary/10" : ""
-            }`}
-          >
-            <span className="w-8 font-numeric text-body-sm text-on-surface-variant">
-              #{p.position}
-            </span>
-            <span
-              className={`flex-1 text-body-lg ${
-                p.isMe ? "text-primary" : "text-on-background"
-              }`}
-            >
-              {p.name}
-              {p.isMe ? " (você)" : ""}
-            </span>
-            <span className="font-numeric text-body-sm text-on-background">{p.score}</span>
-          </div>
-        ))}
-        <p className="px-md py-3 text-body-sm text-on-surface-variant">
-          Níveis de 0 a 10, inspirados no Faceit: seu Score de Nível é a média móvel dos scores
-          diários. Continue ativo para subir de patamar!
+      <section className="rounded-xl border border-border bg-card p-md">
+        <p className="text-body-sm text-on-surface-variant">
+          Níveis de 0 a 10: seu Score de Nível é a média móvel dos scores diários. Continue ativo
+          para subir de patamar!
         </p>
       </section>
     </>
