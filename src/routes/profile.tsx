@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/AppShell";
 import { connectBand, isBluetoothSupported, type BandConnection } from "@/lib/band-ble";
 import {
@@ -9,26 +9,30 @@ import {
   dailyHistory,
   dailyScore,
   isRanked,
-  leaderboard,
   levelProgress,
   levelScore,
   todaySubScores,
   type SubScoreKey,
 } from "@/lib/scoring";
+import {
+  activityHeatmap,
+  HEATMAP_LEVEL_OPACITY,
+  type ActivityDay,
+} from "@/lib/metrics";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Perfil e pontuação — Vital" },
+      { title: "Perfil e pontuação — HALO" },
       {
         name: "description",
         content:
           "Conecte sua BAND, veja seu score diário, sub-scores de 0 a 100, nível no ranking e progresso até o próximo nível.",
       },
-      { property: "og:title", content: "Perfil e pontuação — Vital" },
+      { property: "og:title", content: "Perfil e pontuação — HALO" },
       {
         property: "og:description",
-        content: "Score diário, sub-scores, nível estilo Faceit e ranking da comunidade Vital.",
+        content: "Score diário, sub-scores, nível estilo Faceit e atividade recente na HALO.",
       },
     ],
   }),
@@ -36,7 +40,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function Profile() {
-  const [tab, setTab] = useState<"perfil" | "pontuacao">("perfil");
+  const [tab, setTab] = useState<"perfil" | "pontuacao" | "config">("perfil");
   const [scoreTab, setScoreTab] = useState<"hoje" | "ranking">("hoje");
 
   return (
@@ -46,6 +50,7 @@ function Profile() {
           [
             { id: "perfil", label: "Perfil" },
             { id: "pontuacao", label: "Pontuação" },
+            { id: "config", label: "Config" },
           ] as const
         ).map((t) => (
           <button
@@ -65,8 +70,10 @@ function Profile() {
 
       {tab === "perfil" ? (
         <ProfileTab />
-      ) : (
+      ) : tab === "pontuacao" ? (
         <ScoreTab scoreTab={scoreTab} onScoreTab={setScoreTab} />
+      ) : (
+        <SettingsTab />
       )}
     </div>
   );
@@ -122,11 +129,26 @@ function ProfileTab() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary">
           <Icon name="person" className="text-[28px] text-primary-foreground" />
         </div>
-        <div className="flex flex-col">
-          <span className="font-display text-headline-mobile text-on-background">Samuel</span>
-          <span className="text-body-sm text-on-surface-variant">Plano Vital · desde 2025</span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="font-display text-headline-mobile text-on-background">Samuel</span>
+            <span
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 font-numeric text-[10px] uppercase tracking-widest"
+              style={{
+                color: "var(--verified)",
+                backgroundColor: "color-mix(in oklab, var(--verified) 18%, transparent)",
+              }}
+              title="Perfil verificado"
+            >
+              <Icon name="verified" className="text-[14px]" />
+              Verificado
+            </span>
+          </div>
+          <span className="text-body-sm text-on-surface-variant">🇧🇷 Brasil</span>
         </div>
       </section>
+
+      <ActivitySection />
 
       <section className="relative flex flex-col gap-md overflow-hidden rounded-xl border border-border bg-card p-md">
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent to-oxygen/15 opacity-60" />
@@ -200,25 +222,123 @@ function ProfileTab() {
         </div>
       </section>
 
-      <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-        {[
-          { icon: "notifications", label: "Notificações" },
-          { icon: "shield", label: "Privacidade dos dados" },
-          { icon: "straighten", label: "Unidades e metas" },
-          { icon: "help", label: "Ajuda" },
-        ].map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
-          >
-            <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
-            <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
-            <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
-          </button>
-        ))}
-      </section>
     </>
+  );
+}
+
+function SettingsTab() {
+  return (
+    <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+      {[
+        { icon: "notifications", label: "Notificações" },
+        { icon: "shield", label: "Privacidade dos dados" },
+        { icon: "straighten", label: "Unidades e metas" },
+        { icon: "help", label: "Ajuda" },
+      ].map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
+        >
+          <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
+          <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
+          <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
+        </button>
+      ))}
+    </section>
+  );
+}
+
+function ActivitySection() {
+  const grid = useMemo(() => activityHeatmap(20), []);
+  const [day, setDay] = useState<ActivityDay | null>(null);
+
+  return (
+    <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
+      <div className="flex items-baseline justify-between">
+        <span className="font-numeric text-label-caps text-on-background">Atividade recente</span>
+        <span className="font-numeric text-[10px] text-on-surface-variant">Últimas 20 semanas</span>
+      </div>
+
+      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <div className="flex gap-1">
+          {grid.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-1">
+              {week.map((d) => (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => setDay(d)}
+                  title={`${d.label} · ${d.events.length} atividades`}
+                  className="h-3 w-3 rounded-[3px] transition-transform active:scale-90"
+                  style={{
+                    backgroundColor: "var(--activity)",
+                    opacity: HEATMAP_LEVEL_OPACITY[d.level],
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="font-numeric text-[10px] text-on-surface-variant">Menos</span>
+        {[0, 1, 2, 3, 4].map((l) => (
+          <span
+            key={l}
+            className="h-3 w-3 rounded-[3px]"
+            style={{ backgroundColor: "var(--activity)", opacity: HEATMAP_LEVEL_OPACITY[l] }}
+          />
+        ))}
+        <span className="font-numeric text-[10px] text-on-surface-variant">Mais</span>
+      </div>
+
+      {day && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4"
+          onClick={() => setDay(null)}
+        >
+          <div
+            className="w-full max-w-[430px] rounded-xl border border-border bg-card p-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-md flex items-center justify-between">
+              <span className="font-display text-title-md text-on-background">{day.label}</span>
+              <button
+                type="button"
+                onClick={() => setDay(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant"
+              >
+                <Icon name="close" className="text-[16px]" />
+              </button>
+            </div>
+            {day.events.length === 0 ? (
+              <p className="text-body-sm text-on-surface-variant">
+                Nenhuma atividade registrada neste dia. Amanhã é um novo começo!
+              </p>
+            ) : (
+              <div className="flex flex-col gap-sm">
+                {day.events.map((e, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-high">
+                      <Icon name={e.icon} className="text-[18px] text-activity" />
+                    </div>
+                    <div className="flex flex-1 flex-col">
+                      <span className="text-body-lg text-on-background">{e.title}</span>
+                      <span className="text-body-sm text-on-surface-variant">{e.detail}</span>
+                    </div>
+                    <span className="font-numeric text-[10px] text-on-surface-variant">
+                      {e.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -397,34 +517,10 @@ function Ranking() {
         </div>
       </section>
 
-      <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-        <span className="px-md pt-md font-numeric text-label-caps text-on-background">
-          Ranking geral
-        </span>
-        {leaderboard.map((p) => (
-          <div
-            key={p.name}
-            className={`flex items-center gap-md px-md py-3 ${
-              p.isMe ? "bg-primary/10" : ""
-            }`}
-          >
-            <span className="w-8 font-numeric text-body-sm text-on-surface-variant">
-              #{p.position}
-            </span>
-            <span
-              className={`flex-1 text-body-lg ${
-                p.isMe ? "text-primary" : "text-on-background"
-              }`}
-            >
-              {p.name}
-              {p.isMe ? " (você)" : ""}
-            </span>
-            <span className="font-numeric text-body-sm text-on-background">{p.score}</span>
-          </div>
-        ))}
-        <p className="px-md py-3 text-body-sm text-on-surface-variant">
-          Níveis de 0 a 10, inspirados no Faceit: seu Score de Nível é a média móvel dos scores
-          diários. Continue ativo para subir de patamar!
+      <section className="rounded-xl border border-border bg-card p-md">
+        <p className="text-body-sm text-on-surface-variant">
+          Níveis de 0 a 10: seu Score de Nível é a média móvel dos scores diários. Continue ativo
+          para subir de patamar!
         </p>
       </section>
     </>
