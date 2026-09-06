@@ -129,11 +129,26 @@ function ProfileTab() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary">
           <Icon name="person" className="text-[28px] text-primary-foreground" />
         </div>
-        <div className="flex flex-col">
-          <span className="font-display text-headline-mobile text-on-background">Samuel</span>
-          <span className="text-body-sm text-on-surface-variant">Plano Vital · desde 2025</span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="font-display text-headline-mobile text-on-background">Samuel</span>
+            <span
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 font-numeric text-[10px] uppercase tracking-widest"
+              style={{
+                color: "var(--verified)",
+                backgroundColor: "color-mix(in oklab, var(--verified) 18%, transparent)",
+              }}
+              title="Perfil verificado"
+            >
+              <Icon name="verified" className="text-[14px]" />
+              Verificado
+            </span>
+          </div>
+          <span className="text-body-sm text-on-surface-variant">🇧🇷 Brasil</span>
         </div>
       </section>
+
+      <ActivitySection />
 
       <section className="relative flex flex-col gap-md overflow-hidden rounded-xl border border-border bg-card p-md">
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent to-oxygen/15 opacity-60" />
