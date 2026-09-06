@@ -170,6 +170,6 @@ function SummaryTab() {
           Dados salvos no dispositivo e sincronizados quando houver conexão.
         </span>
       </div>
-    </div>
+    </>
   );
 }
