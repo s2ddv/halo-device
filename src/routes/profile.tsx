@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/AppShell";
 import { connectBand, isBluetoothSupported, type BandConnection } from "@/lib/band-ble";
 import {
