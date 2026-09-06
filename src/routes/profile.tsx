@@ -9,26 +9,30 @@ import {
   dailyHistory,
   dailyScore,
   isRanked,
-  leaderboard,
   levelProgress,
   levelScore,
   todaySubScores,
   type SubScoreKey,
 } from "@/lib/scoring";
+import {
+  activityHeatmap,
+  HEATMAP_LEVEL_OPACITY,
+  type ActivityDay,
+} from "@/lib/metrics";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Perfil e pontuação — Vital" },
+      { title: "Perfil e pontuação — HALO" },
       {
         name: "description",
         content:
           "Conecte sua BAND, veja seu score diário, sub-scores de 0 a 100, nível no ranking e progresso até o próximo nível.",
       },
-      { property: "og:title", content: "Perfil e pontuação — Vital" },
+      { property: "og:title", content: "Perfil e pontuação — HALO" },
       {
         property: "og:description",
-        content: "Score diário, sub-scores, nível estilo Faceit e ranking da comunidade Vital.",
+        content: "Score diário, sub-scores, nível estilo Faceit e atividade recente na HALO.",
       },
     ],
   }),
@@ -36,7 +40,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function Profile() {
-  const [tab, setTab] = useState<"perfil" | "pontuacao">("perfil");
+  const [tab, setTab] = useState<"perfil" | "pontuacao" | "config">("perfil");
   const [scoreTab, setScoreTab] = useState<"hoje" | "ranking">("hoje");
 
   return (
