@@ -70,8 +70,10 @@ function Profile() {
 
       {tab === "perfil" ? (
         <ProfileTab />
-      ) : (
+      ) : tab === "pontuacao" ? (
         <ScoreTab scoreTab={scoreTab} onScoreTab={setScoreTab} />
+      ) : (
+        <SettingsTab />
       )}
     </div>
   );
