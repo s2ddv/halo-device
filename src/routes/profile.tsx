@@ -222,25 +222,123 @@ function ProfileTab() {
         </div>
       </section>
 
-      <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-        {[
-          { icon: "notifications", label: "Notificações" },
-          { icon: "shield", label: "Privacidade dos dados" },
-          { icon: "straighten", label: "Unidades e metas" },
-          { icon: "help", label: "Ajuda" },
-        ].map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
-          >
-            <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
-            <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
-            <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
-          </button>
-        ))}
-      </section>
     </>
+  );
+}
+
+function SettingsTab() {
+  return (
+    <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+      {[
+        { icon: "notifications", label: "Notificações" },
+        { icon: "shield", label: "Privacidade dos dados" },
+        { icon: "straighten", label: "Unidades e metas" },
+        { icon: "help", label: "Ajuda" },
+      ].map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
+        >
+          <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
+          <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
+          <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
+        </button>
+      ))}
+    </section>
+  );
+}
+
+function ActivitySection() {
+  const grid = useMemo(() => activityHeatmap(20), []);
+  const [day, setDay] = useState<ActivityDay | null>(null);
+
+  return (
+    <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
+      <div className="flex items-baseline justify-between">
+        <span className="font-numeric text-label-caps text-on-background">Atividade recente</span>
+        <span className="font-numeric text-[10px] text-on-surface-variant">Últimas 20 semanas</span>
+      </div>
+
+      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <div className="flex gap-1">
+          {grid.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-1">
+              {week.map((d) => (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => setDay(d)}
+                  title={`${d.label} · ${d.events.length} atividades`}
+                  className="h-3 w-3 rounded-[3px] transition-transform active:scale-90"
+                  style={{
+                    backgroundColor: "var(--activity)",
+                    opacity: HEATMAP_LEVEL_OPACITY[d.level],
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="font-numeric text-[10px] text-on-surface-variant">Menos</span>
+        {[0, 1, 2, 3, 4].map((l) => (
+          <span
+            key={l}
+            className="h-3 w-3 rounded-[3px]"
+            style={{ backgroundColor: "var(--activity)", opacity: HEATMAP_LEVEL_OPACITY[l] }}
+          />
+        ))}
+        <span className="font-numeric text-[10px] text-on-surface-variant">Mais</span>
+      </div>
+
+      {day && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4"
+          onClick={() => setDay(null)}
+        >
+          <div
+            className="w-full max-w-[430px] rounded-xl border border-border bg-card p-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-md flex items-center justify-between">
+              <span className="font-display text-title-md text-on-background">{day.label}</span>
+              <button
+                type="button"
+                onClick={() => setDay(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant"
+              >
+                <Icon name="close" className="text-[16px]" />
+              </button>
+            </div>
+            {day.events.length === 0 ? (
+              <p className="text-body-sm text-on-surface-variant">
+                Nenhuma atividade registrada neste dia. Amanhã é um novo começo!
+              </p>
+            ) : (
+              <div className="flex flex-col gap-sm">
+                {day.events.map((e, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-high">
+                      <Icon name={e.icon} className="text-[18px] text-activity" />
+                    </div>
+                    <div className="flex flex-1 flex-col">
+                      <span className="text-body-lg text-on-background">{e.title}</span>
+                      <span className="text-body-sm text-on-surface-variant">{e.detail}</span>
+                    </div>
+                    <span className="font-numeric text-[10px] text-on-surface-variant">
+                      {e.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
