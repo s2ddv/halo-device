@@ -50,6 +50,7 @@ function Profile() {
           [
             { id: "perfil", label: "Perfil" },
             { id: "pontuacao", label: "Pontuação" },
+            { id: "config", label: "Config" },
           ] as const
         ).map((t) => (
           <button
