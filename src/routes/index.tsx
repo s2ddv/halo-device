@@ -150,7 +150,7 @@ function Dashboard() {
 
         <div className="grid grid-cols-1 gap-sm">
           {/* Frequência cardíaca */}
-          <Link to="/reports" className={`${cardBase} min-h-[160px]`}>
+          <Link to="/heart-rate" className={`${cardBase} min-h-[160px]`}>
             <Glow colorVar="--heart" />
             <CardHeader label="Frequência cardíaca" date="01/08/2025" />
             <div className="relative z-10 mt-auto flex w-full flex-col gap-1">
@@ -260,7 +260,7 @@ function Dashboard() {
           </Link>
 
           {/* Oxigênio no sangue */}
-          <Link to="/reports" className={`${cardBase} min-h-[220px]`}>
+          <Link to="/spo2" className={`${cardBase} min-h-[220px]`}>
             <Glow colorVar="--oxygen" />
             <CardHeader label="Oxigênio no sangue" date="01/08/2025" />
             <div className="relative z-10 flex h-24 flex-1 items-end justify-center gap-2 py-4">
