@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 
 const leftTabs = [
   { to: "/", icon: "home", label: "Dashboard" },
-  { to: "/reports", icon: "analytics", label: "Relatórios" },
+  { to: "/progress", icon: "trending_up", label: "Progressão" },
 ] as const;
+
+const extraTabs = [{ to: "/reports", icon: "analytics", label: "Relatórios" }] as const;
 
 const rightTabs = [{ to: "/profile", icon: "person", label: "Perfil" }] as const;
 
