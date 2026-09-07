@@ -227,27 +227,116 @@ function ProfileTab() {
 }
 
 function SettingsTab() {
+  const { preferences, setGoal, setFocus, resetGoals } = usePreferences();
+
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-      {[
-        { icon: "notifications", label: "Notificações" },
-        { icon: "shield", label: "Privacidade dos dados" },
-        { icon: "straighten", label: "Unidades e metas" },
-        { icon: "help", label: "Ajuda" },
-      ].map((item) => (
+    <div className="flex flex-col gap-md">
+      {/* Metas personalizadas */}
+      <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
+        <div className="flex items-center justify-between">
+          <span className="font-numeric text-label-caps text-on-background">Minhas metas</span>
+          <button
+            type="button"
+            onClick={resetGoals}
+            className="font-numeric text-[10px] uppercase tracking-widest text-on-surface-variant"
+          >
+            Restaurar padrão
+          </button>
+        </div>
+        {GOAL_META.map((g) => (
+          <div key={g.key} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <Icon name={g.icon} className="text-[16px] text-on-surface-variant" />
+              <span className="flex-1 text-body-sm text-on-background">{g.label}</span>
+              <span className="font-numeric text-[13px] text-on-background">
+                {preferences.goals[g.key].toLocaleString("pt-BR")} {g.unit}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={g.min}
+              max={g.max}
+              step={g.step}
+              value={preferences.goals[g.key]}
+              onChange={(e) => setGoal(g.key, Number(e.target.value))}
+              aria-label={g.label}
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-container-high accent-primary"
+              style={{ accentColor: `var(${g.colorVar})` }}
+            />
+          </div>
+        ))}
+      </section>
+
+      {/* Modo Foco */}
+      <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
+        <span className="font-numeric text-label-caps text-on-background">Modo Foco</span>
+        <p className="text-body-sm text-on-surface-variant">
+          Escolha o que quer priorizar. As métricas relacionadas ganham destaque na tela inicial.
+        </p>
         <button
-          key={item.label}
           type="button"
-          className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
+          onClick={() => setFocus("none")}
+          className={`flex items-center gap-md rounded-xl border px-md py-3 text-left ${
+            preferences.focus === "none"
+              ? "border-primary bg-surface-container-high"
+              : "border-border"
+          }`}
         >
-          <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
-          <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
-          <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
+          <Icon name="tune" className="text-[18px] text-on-surface-variant" />
+          <span className="flex-1 text-body-lg text-on-background">Sem foco</span>
+          {preferences.focus === "none" && (
+            <Icon name="check_circle" className="text-[18px] text-primary" />
+          )}
         </button>
-      ))}
-    </section>
+        {(Object.keys(FOCUS_META) as Exclude<FocusMode, "none">[]).map((key) => {
+          const f = FOCUS_META[key];
+          const active = preferences.focus === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFocus(key)}
+              className={`flex items-start gap-md rounded-xl border px-md py-3 text-left ${
+                active ? "bg-surface-container-high" : "border-border"
+              }`}
+              style={active ? { borderColor: `var(${f.colorVar})` } : undefined}
+            >
+              <Icon name={f.icon} className="mt-0.5 text-[18px]" />
+              <span className="flex flex-1 flex-col gap-0.5">
+                <span className="text-body-lg text-on-background">{f.label}</span>
+                <span className="text-body-sm text-on-surface-variant">{f.description}</span>
+              </span>
+              {active && <Icon name="check_circle" className="text-[18px] text-primary" />}
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+        {[
+          { icon: "notifications", label: "Notificações" },
+          { icon: "shield", label: "Privacidade dos dados" },
+          { icon: "help", label: "Ajuda" },
+        ].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
+          >
+            <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
+            <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
+            <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
+          </button>
+        ))}
+      </section>
+
+      <p className="text-body-sm text-on-surface-variant">
+        Metas e Modo Foco ficam salvos apenas neste aparelho e nunca são compartilhados.
+      </p>
+    </div>
   );
 }
+
 
 function ActivitySection() {
   const grid = useMemo(() => activityHeatmap(20), []);
