@@ -151,9 +151,22 @@ function Dashboard() {
       </section>
 
       <div className="flex flex-col gap-md">
-        <h2 className="font-display text-headline-mobile text-on-background">
-          Tudo que a BAND monitora
-        </h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-display text-headline-mobile text-on-background">
+            Tudo que a BAND monitora
+          </h2>
+          {preferences.focus !== "none" && (
+            <span className="flex items-center gap-1 rounded-full bg-surface-container-high px-3 py-1.5">
+              <Icon
+                name={FOCUS_META[preferences.focus].icon}
+                className="text-[14px] text-on-surface-variant"
+              />
+              <span className="font-numeric text-[10px] uppercase tracking-widest text-on-surface-variant">
+                {FOCUS_META[preferences.focus].label}
+              </span>
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-sm">
           {/* Frequência cardíaca */}

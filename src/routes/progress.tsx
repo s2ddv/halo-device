@@ -148,11 +148,9 @@ function Progress() {
                   backgroundImage: `linear-gradient(to bottom, transparent, color-mix(in oklab, var(${r.colorVar}) 16%, transparent))`,
                 }}
               />
-              <Icon
-                name={r.icon}
-                className="relative z-10 text-[18px]"
-                // eslint-disable-next-line
-              />
+              <span className="relative z-10" style={{ color: `var(${r.colorVar})` }}>
+                <Icon name={r.icon} className="text-[18px]" />
+              </span>
               <div className="relative z-10 flex items-baseline gap-1">
                 <span className="font-numeric text-numeric-data text-on-background">{r.value}</span>
                 <span className="text-body-sm text-on-surface-variant">{r.unit}</span>
