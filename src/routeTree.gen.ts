@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HeartRateRouteImport } from './routes/heart-rate'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SleepRouteImport } from './routes/sleep'
@@ -31,6 +32,11 @@ const HeartRateRoute = HeartRateRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressRoute = ProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecoveryRoute = RecoveryRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/heart-rate': typeof HeartRateRoute
   '/profile': typeof ProfileRoute
+  '/progress': typeof ProgressRoute
   '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
   '/sleep': typeof SleepRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/heart-rate': typeof HeartRateRoute
   '/profile': typeof ProfileRoute
+  '/progress': typeof ProgressRoute
   '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
   '/sleep': typeof SleepRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/heart-rate': typeof HeartRateRoute
   '/profile': typeof ProfileRoute
+  '/progress': typeof ProgressRoute
   '/recovery': typeof RecoveryRoute
   '/reports': typeof ReportsRoute
   '/sleep': typeof SleepRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/heart-rate'
     | '/profile'
+    | '/progress'
     | '/recovery'
     | '/reports'
     | '/sleep'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/heart-rate'
     | '/profile'
+    | '/progress'
     | '/recovery'
     | '/reports'
     | '/sleep'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/heart-rate'
     | '/profile'
+    | '/progress'
     | '/recovery'
     | '/reports'
     | '/sleep'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HeartRateRoute: typeof HeartRateRoute
   ProfileRoute: typeof ProfileRoute
+  ProgressRoute: typeof ProgressRoute
   RecoveryRoute: typeof RecoveryRoute
   ReportsRoute: typeof ReportsRoute
   SleepRoute: typeof SleepRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress': {
+      id: '/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof ProgressRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recovery': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HeartRateRoute: HeartRateRoute,
   ProfileRoute: ProfileRoute,
+  ProgressRoute: ProgressRoute,
   RecoveryRoute: RecoveryRoute,
   ReportsRoute: ReportsRoute,
   SleepRoute: SleepRoute,

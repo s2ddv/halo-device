@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Icon } from "@/components/AppShell";
+import { FOCUS_META, usePreferences } from "@/lib/preferences";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -104,6 +105,12 @@ function Glow({ colorVar }: { colorVar: string }) {
 }
 
 function Dashboard() {
+  const { preferences } = usePreferences();
+  const highlight =
+    preferences.focus === "none" ? null : FOCUS_META[preferences.focus].highlight;
+  const em = (key: string) =>
+    highlight ? (highlight.includes(key) ? "ring-1 ring-primary/40" : "opacity-45") : "";
+
   return (
     <div className="flex w-full flex-col gap-lg px-container-padding">
       <section className="flex flex-col items-center justify-center gap-4 pt-md">
@@ -144,13 +151,26 @@ function Dashboard() {
       </section>
 
       <div className="flex flex-col gap-md">
-        <h2 className="font-display text-headline-mobile text-on-background">
-          Tudo que a BAND monitora
-        </h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-display text-headline-mobile text-on-background">
+            Tudo que a BAND monitora
+          </h2>
+          {preferences.focus !== "none" && (
+            <span className="flex items-center gap-1 rounded-full bg-surface-container-high px-3 py-1.5">
+              <Icon
+                name={FOCUS_META[preferences.focus].icon}
+                className="text-[14px] text-on-surface-variant"
+              />
+              <span className="font-numeric text-[10px] uppercase tracking-widest text-on-surface-variant">
+                {FOCUS_META[preferences.focus].label}
+              </span>
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-sm">
           {/* Frequência cardíaca */}
-          <Link to="/heart-rate" className={`${cardBase} min-h-[160px]`}>
+          <Link to="/heart-rate" className={`${cardBase} min-h-[160px]` + ` ${em("heart")}`}>
             <Glow colorVar="--heart" />
             <CardHeader label="Frequência cardíaca" date="01/08/2025" />
             <div className="relative z-10 mt-auto flex w-full flex-col gap-1">
@@ -183,7 +203,7 @@ function Dashboard() {
           </Link>
 
           {/* Sono */}
-          <Link to="/sleep" className={`${cardBase} min-h-[220px]`}>
+          <Link to="/sleep" className={`${cardBase} min-h-[220px]` + ` ${em("sleep")}`}>
             <Glow colorVar="--sleep" />
             <CardHeader label="Sono" date="01/08/2025" />
             <Gauge value="76" label="Bom" arc="M 10,50 A 40,40 0 0,1 70,15" colorVar="--sleep" />
@@ -191,7 +211,7 @@ function Dashboard() {
           </Link>
 
           {/* Recuperação e estresse */}
-          <Link to="/recovery" className={`${cardBase} min-h-[200px]`}>
+          <Link to="/recovery" className={`${cardBase} min-h-[200px]` + ` ${em("recovery")}`}>
             <Glow colorVar="--activity" />
             <CardHeader label="Recuperação e estresse" date="Hoje" />
             <div className="relative z-10 flex flex-1 items-center justify-center gap-6 py-4">
@@ -215,7 +235,7 @@ function Dashboard() {
           </Link>
 
           {/* Atividades */}
-          <Link to="/workout" className={`${cardBase} min-h-[220px]`}>
+          <Link to="/workout" className={`${cardBase} min-h-[220px] ${em("activity")}`}>
             <Glow colorVar="--activity" />
             <CardHeader label="Atividades" date="Hoje" />
             <Gauge
@@ -229,7 +249,7 @@ function Dashboard() {
 
 
           {/* Recordes esportivos */}
-          <Link to="/workout" className={`${cardBase} min-h-[220px]`}>
+          <Link to="/workout" className={`${cardBase} min-h-[220px] ${em("sport")}`}>
             <Glow colorVar="--sport" />
             <CardHeader label="Recordes Esportivos" date="01/08/2025" />
             <div className="relative z-10 flex flex-1 flex-col items-center justify-center py-4">
@@ -260,7 +280,7 @@ function Dashboard() {
           </Link>
 
           {/* Oxigênio no sangue */}
-          <Link to="/spo2" className={`${cardBase} min-h-[220px]`}>
+          <Link to="/spo2" className={`${cardBase} min-h-[220px] ${em("spo2")}`}>
             <Glow colorVar="--oxygen" />
             <CardHeader label="Oxigênio no sangue" date="01/08/2025" />
             <div className="relative z-10 flex h-24 flex-1 items-end justify-center gap-2 py-4">
