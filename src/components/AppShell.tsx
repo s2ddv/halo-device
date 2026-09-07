@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Icon name="fitness_center" className="text-[26px]" />
           </Link>
 
-          {rightTabs.map((tab) => (
+          {[...extraTabs, ...rightTabs].map((tab) => (
             <Link
               key={tab.to}
               to={tab.to}
