@@ -3,7 +3,8 @@
  * Tudo individual e privado — nenhuma comparação com outros usuários.
  */
 
-import { dailyHistory, levelFromScore, levelScore } from "@/lib/scoring";
+import { dailyHistory } from "@/lib/demo/scoring";
+import { levelFromScore, levelScore } from "@/lib/scoring";
 
 export type MonthPoint = { month: string; score: number; level: number };
 

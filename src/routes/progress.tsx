@@ -173,10 +173,7 @@ function Progress() {
           Insights do seu histórico
         </h2>
         {insights.map((i) => (
-          <div
-            key={i.key}
-            className="flex gap-md rounded-xl border border-border bg-card p-md"
-          >
+          <div key={i.key} className="flex gap-md rounded-xl border border-border bg-card p-md">
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
               style={{ background: `color-mix(in oklab, var(${i.colorVar}) 22%, transparent)` }}

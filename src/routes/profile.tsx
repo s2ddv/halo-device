@@ -1,25 +1,20 @@
+import { HealthDataStatus } from "@/components/HealthDataStatus";
+import { activeDaysLast30, dailyHistory, todaySubScores } from "@/lib/demo/scoring";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/AppShell";
 import { connectBand, isBluetoothSupported, type BandConnection } from "@/lib/band-ble";
 import { FOCUS_META, GOAL_META, usePreferences, type FocusMode } from "@/lib/preferences";
 import {
   SUB_SCORE_META,
   LEVEL_COLORS,
-  activeDaysLast30,
-  dailyHistory,
   dailyScore,
   isRanked,
   levelProgress,
   levelScore,
-  todaySubScores,
   type SubScoreKey,
 } from "@/lib/scoring";
-import {
-  activityHeatmap,
-  HEATMAP_LEVEL_OPACITY,
-  type ActivityDay,
-} from "@/lib/metrics";
+import { activityHeatmap, HEATMAP_LEVEL_OPACITY, type ActivityDay } from "@/lib/metrics";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -28,12 +23,12 @@ export const Route = createFileRoute("/profile")({
       {
         name: "description",
         content:
-          "Conecte sua BAND, veja seu score diário, sub-scores de 0 a 100, nível no ranking e progresso até o próximo nível.",
+          "Conecte sua BAND, veja seu score diário, sub-scores de 0 a 100, nível pessoal e progresso até o próximo nível.",
       },
       { property: "og:title", content: "Perfil e pontuação — HALO" },
       {
         property: "og:description",
-        content: "Score diário, sub-scores, nível estilo Faceit e atividade recente na HALO.",
+        content: "Score diário, sub-scores, nível pessoal e atividade recente na HALO.",
       },
     ],
   }),
@@ -59,9 +54,7 @@ function Profile() {
             type="button"
             onClick={() => setTab(t.id)}
             className={`flex-1 rounded-full py-2.5 font-numeric text-label-caps uppercase tracking-widest transition-colors ${
-              tab === t.id
-                ? "bg-primary text-primary-foreground"
-                : "text-on-surface-variant"
+              tab === t.id ? "bg-primary text-primary-foreground" : "text-on-surface-variant"
             }`}
           >
             {t.label}
@@ -81,6 +74,17 @@ function Profile() {
 }
 
 function ProfileTab() {
+  const connectionRef = useRef<BandConnection | null>(null);
+  const connectionAttempt = useRef(0);
+  const connectionAbort = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      connectionAttempt.current += 1;
+      connectionAbort.current?.abort();
+      connectionRef.current?.disconnect();
+    },
+    [],
+  );
   const [supported, setSupported] = useState(false);
   const [band, setBand] = useState<BandConnection | null>(null);
   const [bpm, setBpm] = useState<number | null>(null);
@@ -102,23 +106,61 @@ function ProfileTab() {
     };
   }, []);
 
+  function handleDisconnect() {
+    connectionAttempt.current += 1;
+    connectionAbort.current?.abort();
+    connectionRef.current?.disconnect();
+    connectionRef.current = null;
+    setBand(null);
+    setBpm(null);
+    setBattery(null);
+    setStatus("idle");
+    setMessage(null);
+  }
+
   async function handleConnect() {
+    const attempt = ++connectionAttempt.current;
+    connectionAbort.current?.abort();
+    connectionRef.current?.disconnect();
+    connectionRef.current = null;
+    setBand(null);
+    setBpm(null);
+    setBattery(null);
+    connectionAbort.current = new AbortController();
     setStatus("connecting");
     setMessage(null);
     try {
       const connection = await connectBand({
-        onHeartRate: setBpm,
-        onBattery: setBattery,
+        signal: connectionAbort.current.signal,
+        onHeartRate: (value) => {
+          if (attempt === connectionAttempt.current) setBpm(value);
+        },
+        onError: (value) => {
+          if (attempt === connectionAttempt.current) setMessage(value);
+        },
+        onBattery: (value) => {
+          if (attempt === connectionAttempt.current) setBattery(value);
+        },
         onDisconnect: () => {
+          if (attempt !== connectionAttempt.current) return;
+          connectionRef.current = null;
+          setBpm(null);
+          setBattery(null);
           setStatus("idle");
           setBand(null);
         },
       });
+      if (attempt !== connectionAttempt.current) {
+        connection.disconnect();
+        return;
+      }
+      connectionRef.current = connection;
       setBand(connection);
       setBpm(connection.heartRate);
       setBattery(connection.batteryLevel);
       setStatus("connected");
     } catch (error) {
+      if (attempt !== connectionAttempt.current) return;
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Não foi possível conectar.");
     }
@@ -149,13 +191,16 @@ function ProfileTab() {
         </div>
       </section>
 
+      <HealthDataStatus />
       <ActivitySection />
 
       <section className="relative flex flex-col gap-md overflow-hidden rounded-xl border border-border bg-card p-md">
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent to-oxygen/15 opacity-60" />
         <div className="relative z-10 flex items-start justify-between">
           <div className="flex flex-col">
-            <span className="font-numeric text-label-caps text-on-background">Dispositivo</span>
+            <span className="font-numeric text-label-caps text-on-background">
+              Dispositivo · teste BLE padrão
+            </span>
             <span className="font-display text-title-md text-on-background">
               {band?.name ?? "Nenhuma BAND conectada"}
             </span>
@@ -192,12 +237,12 @@ function ProfileTab() {
 
         <button
           type="button"
-          onClick={handleConnect}
+          onClick={status === "connected" ? handleDisconnect : handleConnect}
           disabled={!supported || status === "connecting"}
           className="relative z-10 flex items-center justify-center gap-2 rounded-full bg-primary py-4 font-numeric text-label-caps uppercase tracking-widest text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           <Icon name="bluetooth_searching" className="text-[18px]" />
-          {status === "connected" ? "Reconectar BAND" : "Procurar BAND"}
+          {status === "connected" ? "Desconectar" : "Procurar dispositivo"}
         </button>
 
         {!supported && (
@@ -217,12 +262,11 @@ function ProfileTab() {
           />
           <span className="text-body-sm text-on-surface-variant">
             {online
-              ? "Conectado — medições enviadas automaticamente."
-              : "Sem conexão — as medições ficam salvas e sobem depois."}
+              ? "Online — sem sincronização com a nuvem."
+              : "Offline — o histórico salvo permanece neste navegador."}
           </span>
         </div>
       </section>
-
     </>
   );
 }
@@ -338,7 +382,6 @@ function SettingsTab() {
   );
 }
 
-
 function ActivitySection() {
   const grid = useMemo(() => activityHeatmap(20), []);
   const [day, setDay] = useState<ActivityDay | null>(null);
@@ -445,7 +488,7 @@ function ScoreTab({
         {(
           [
             { id: "hoje", label: "Hoje" },
-            { id: "ranking", label: "Ranking" },
+            { id: "ranking", label: "Nível pessoal" },
           ] as const
         ).map((t) => (
           <button
@@ -541,9 +584,7 @@ function Ranking() {
               </span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="font-numeric text-title-md text-on-background">
-                {lvlScore} pts
-              </span>
+              <span className="font-numeric text-title-md text-on-background">{lvlScore} pts</span>
               <span className="text-body-sm text-on-surface-variant">
                 Média dos últimos 30 dias
               </span>
@@ -554,7 +595,7 @@ function Ranking() {
             <Icon name="military_tech" className="text-[32px] text-on-surface-variant" />
             <span className="font-display text-title-md text-on-background">Não classificado</span>
             <span className="text-center text-body-sm text-on-surface-variant">
-              Use a BAND por pelo menos 20 dos últimos 30 dias para entrar no ranking.
+              Exemplo de progressão pessoal; não representa seu histórico real.
             </span>
           </div>
         )}
@@ -597,8 +638,7 @@ function Ranking() {
               className="flex-1 rounded-t-sm"
               style={{
                 height: `${d === 0 ? 4 : Math.max(8, (d / max) * 100)}%`,
-                backgroundColor:
-                  d === 0 ? "var(--surface-container-high)" : "var(--primary)",
+                backgroundColor: d === 0 ? "var(--surface-container-high)" : "var(--primary)",
                 opacity: d === 0 ? 0.5 : 0.4 + (d / max) * 0.6,
               }}
               title={d === 0 ? "Dia sem uso" : `${d} pts`}

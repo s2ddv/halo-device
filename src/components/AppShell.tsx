@@ -48,7 +48,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="relative flex w-full flex-1 flex-col pb-32 pt-16">{children}</main>
+      <main className="relative flex w-full flex-1 flex-col pb-32 pt-16">
+        <aside className="mx-4 my-3 rounded-lg border border-border p-3 text-body-sm text-on-surface-variant">
+          Demonstração: gráficos, pontuações e insights usam dados de exemplo. Leituras Bluetooth e
+          o histórico real são identificados separadamente no perfil.
+        </aside>
+        {children}
+      </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[430px] px-4 pb-safe">
         <div className="mb-3 flex h-16 items-center justify-around rounded-full border border-border bg-surface-container-highest/90 px-6 shadow-[0_8px_24px_rgba(0,0,0,0.5)] backdrop-blur-xl">

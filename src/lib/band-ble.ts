@@ -1,3 +1,7 @@
+import { parseHeartRate } from "./health/heart-rate";
+import { localDay } from "./health/model";
+import { saveMeasurement } from "./health/storage";
+
 /**
  * Web Bluetooth wrapper for the BAND wearable.
  * Browser-only: every function must be called from an event handler or effect.
@@ -8,6 +12,7 @@ export type BandConnection = {
   name: string;
   heartRate: number | null;
   batteryLevel: number | null;
+  disconnect: () => void;
 };
 
 const HEART_RATE_SERVICE = "heart_rate";
@@ -19,15 +24,12 @@ export function isBluetoothSupported(): boolean {
   return typeof navigator !== "undefined" && "bluetooth" in navigator;
 }
 
-function parseHeartRate(view: DataView): number {
-  const flags = view.getUint8(0);
-  return flags & 0x01 ? view.getUint16(1, true) : view.getUint8(1);
-}
-
 export async function connectBand(handlers: {
   onHeartRate?: (bpm: number) => void;
   onBattery?: (level: number) => void;
   onDisconnect?: () => void;
+  onError?: (message: string) => void;
+  signal?: AbortSignal;
 }): Promise<BandConnection> {
   if (!isBluetoothSupported()) {
     throw new Error(
@@ -35,6 +37,7 @@ export async function connectBand(handlers: {
     );
   }
 
+  handlers.signal?.throwIfAborted();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bluetooth = (navigator as any).bluetooth;
 
@@ -43,42 +46,79 @@ export async function connectBand(handlers: {
     optionalServices: [BATTERY_SERVICE],
   });
 
-  device.addEventListener("gattserverdisconnected", () => handlers.onDisconnect?.());
+  handlers.signal?.throwIfAborted();
+  let removeNotificationListener = () => {};
+  const disconnected = () => {
+    removeNotificationListener();
+    device.removeEventListener("gattserverdisconnected", disconnected);
+    handlers.signal?.removeEventListener("abort", disconnect);
+    handlers.onDisconnect?.();
+  };
+  device.addEventListener("gattserverdisconnected", disconnected);
+  const disconnect = () => {
+    removeNotificationListener();
+    device.removeEventListener("gattserverdisconnected", disconnected);
+    handlers.signal?.removeEventListener("abort", disconnect);
+    device.gatt?.disconnect();
+  };
 
-  const server = await device.gatt.connect();
-
+  handlers.signal?.addEventListener("abort", disconnect, { once: true });
   let heartRate: number | null = null;
-  try {
-    const hrService = await server.getPrimaryService(HEART_RATE_SERVICE);
-    const hrChar = await hrService.getCharacteristic(HEART_RATE_MEASUREMENT);
-    hrChar.addEventListener("characteristicvaluechanged", (event: Event) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const value = (event.target as any).value as DataView;
-      const bpm = parseHeartRate(value);
-      heartRate = bpm;
-      handlers.onHeartRate?.(bpm);
-    });
-    await hrChar.startNotifications();
-  } catch {
-    // device without heart-rate notifications
-  }
-
   let batteryLevel: number | null = null;
   try {
-    const batteryService = await server.getPrimaryService(BATTERY_SERVICE);
-    const batteryChar = await batteryService.getCharacteristic(BATTERY_LEVEL);
-    const value = await batteryChar.readValue();
-    const level: number = value.getUint8(0);
-    batteryLevel = level;
-    handlers.onBattery?.(level);
-  } catch {
-    // battery service unavailable
-  }
+    const server = await device.gatt.connect();
+    handlers.signal?.throwIfAborted();
+    const hrService = await server.getPrimaryService(HEART_RATE_SERVICE);
+    const hrChar = await hrService.getCharacteristic(HEART_RATE_MEASUREMENT);
+    const receive = (event: Event) => {
+      if (handlers.signal?.aborted) return;
+      try {
+        const value = (event.target as EventTarget & { value: DataView }).value;
+        const bpm = parseHeartRate(value);
+        heartRate = bpm;
+        handlers.onHeartRate?.(bpm);
+        const now = new Date();
+        void saveMeasurement({
+          id: crypto.randomUUID(),
+          metric: "heartRate",
+          value: bpm,
+          unit: "bpm",
+          recordedAt: now.toISOString(),
+          receivedAt: now.toISOString(),
+          day: localDay(now),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          source: "ble",
+          deviceId: device.id,
+        }).catch(() =>
+          handlers.onError?.("Leitura recebida, mas não foi possível salvá-la neste navegador."),
+        );
+      } catch (error) {
+        handlers.onError?.(error instanceof Error ? error.message : "Leitura inválida.");
+      }
+    };
+    handlers.signal?.throwIfAborted();
+    hrChar.addEventListener("characteristicvaluechanged", receive);
+    removeNotificationListener = () =>
+      hrChar.removeEventListener("characteristicvaluechanged", receive);
+    await hrChar.startNotifications();
 
-  return {
-    id: device.id ?? "band",
-    name: device.name ?? "BAND",
-    heartRate,
-    batteryLevel,
-  };
+    try {
+      const batteryService = await server.getPrimaryService(BATTERY_SERVICE);
+      const batteryChar = await batteryService.getCharacteristic(BATTERY_LEVEL);
+      const value = await batteryChar.readValue();
+      const level: number = value.getUint8(0);
+      if (level <= 100) {
+        batteryLevel = level;
+        handlers.onBattery?.(level);
+      }
+    } catch {
+      // Battery is optional; HR notifications are required for this experiment.
+    }
+    handlers.signal?.throwIfAborted();
+    if (!device.gatt.connected) throw new Error("A pulseira desconectou durante a conexão.");
+    return { id: device.id, name: device.name ?? "BAND", heartRate, batteryLevel, disconnect };
+  } catch (error) {
+    disconnect();
+    throw error;
+  }
 }

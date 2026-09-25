@@ -78,10 +78,7 @@ function Gauge({
           <span className="font-numeric text-[28px] font-bold leading-none text-on-background">
             {value}
           </span>
-          <span
-            className="mt-1 font-numeric text-[10px]"
-            style={{ color: `var(${colorVar})` }}
-          >
+          <span className="mt-1 font-numeric text-[10px]" style={{ color: `var(${colorVar})` }}>
             {label}
           </span>
         </div>
@@ -106,8 +103,7 @@ function Glow({ colorVar }: { colorVar: string }) {
 
 function Dashboard() {
   const { preferences } = usePreferences();
-  const highlight =
-    preferences.focus === "none" ? null : FOCUS_META[preferences.focus].highlight;
+  const highlight = preferences.focus === "none" ? null : FOCUS_META[preferences.focus].highlight;
   const em = (key: string) =>
     highlight ? (highlight.includes(key) ? "ring-1 ring-primary/40" : "opacity-45") : "";
 
@@ -196,9 +192,7 @@ function Dashboard() {
               <span className="font-display text-headline-mobile text-on-background">
                 Frequência cardíaca
               </span>
-              <span className="text-body-sm text-on-surface-variant">
-                Batimentos em tempo real
-              </span>
+              <span className="text-body-sm text-on-surface-variant">Batimentos em tempo real</span>
             </div>
           </Link>
 
@@ -246,7 +240,6 @@ function Dashboard() {
             />
             <CardFooter title="Atividades" subtitle="Passos, calorias e treinos" />
           </Link>
-
 
           {/* Recordes esportivos */}
           <Link to="/workout" className={`${cardBase} min-h-[220px] ${em("sport")}`}>

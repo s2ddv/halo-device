@@ -65,10 +65,12 @@ function SleepPage() {
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent to-sleep/15" />
         <div className="relative z-10 flex items-end justify-between">
           <div className="flex flex-col">
-            <span className="font-numeric text-label-caps text-on-background">Pontuação do descanso</span>
+            <span className="font-numeric text-label-caps text-on-background">
+              Pontuação do descanso
+            </span>
             <span className="text-body-sm text-on-surface-variant">
-              {night.durationHours.toString().replace(".", ",")} h dormidas ·{" "}
-              {night.efficiency}% de eficiência
+              {night.durationHours.toString().replace(".", ",")} h dormidas · {night.efficiency}% de
+              eficiência
             </span>
           </div>
           <div className="flex items-baseline gap-1">

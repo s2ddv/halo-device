@@ -24,10 +24,34 @@ export const Route = createFileRoute("/reports")({
 });
 
 const series = [
-  { label: "Frequência cardíaca", unit: "bpm", value: "72", colorVar: "--heart", bars: [60, 72, 68, 80, 74, 66, 71] },
-  { label: "Sono", unit: "h", value: "7,4", colorVar: "--sleep", bars: [70, 55, 80, 62, 90, 76, 68] },
-  { label: "SpO2", unit: "%", value: "97", colorVar: "--oxygen", bars: [92, 96, 94, 98, 95, 97, 96] },
-  { label: "Atividades", unit: "kcal", value: "612", colorVar: "--activity", bars: [40, 62, 88, 54, 70, 95, 60] },
+  {
+    label: "Frequência cardíaca",
+    unit: "bpm",
+    value: "72",
+    colorVar: "--heart",
+    bars: [60, 72, 68, 80, 74, 66, 71],
+  },
+  {
+    label: "Sono",
+    unit: "h",
+    value: "7,4",
+    colorVar: "--sleep",
+    bars: [70, 55, 80, 62, 90, 76, 68],
+  },
+  {
+    label: "SpO2",
+    unit: "%",
+    value: "97",
+    colorVar: "--oxygen",
+    bars: [92, 96, 94, 98, 95, 97, 96],
+  },
+  {
+    label: "Atividades",
+    unit: "kcal",
+    value: "612",
+    colorVar: "--activity",
+    bars: [40, 62, 88, 54, 70, 95, 60],
+  },
 ];
 
 const days = ["S", "T", "Q", "Q", "S", "S", "D"];
@@ -92,14 +116,7 @@ function TemperatureTab() {
     <>
       <MultiDaySelector days={dayList} selected={selected} onToggle={toggle} />
       {chart.length > 0 && (
-        <MinAvgMax
-          min={s.min}
-          avg={s.avg}
-          max={s.max}
-          unit="°C"
-          colorVar="--cycle"
-          format={fmt}
-        />
+        <MinAvgMax min={s.min} avg={s.avg} max={s.max} unit="°C" colorVar="--cycle" format={fmt} />
       )}
       <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
         <div className="flex items-center gap-2">
@@ -121,8 +138,6 @@ function TemperatureTab() {
 function SummaryTab() {
   return (
     <>
-
-
       <div className="flex flex-col gap-sm">
         {series.map((s) => (
           <section

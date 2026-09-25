@@ -102,9 +102,9 @@ export type ActivityDay = {
 const EVENT_POOL: { icon: string; title: string; detail: string }[] = [
   { icon: "fitness_center", title: "Treino concluído", detail: "Força · 42 min · 380 kcal" },
   { icon: "directions_run", title: "Corrida registrada", detail: "5,2 km · ritmo 5'42\"/km" },
-  { icon: "military_tech", title: "Subiu de nível", detail: "Novo nível no ranking HALO" },
+  { icon: "military_tech", title: "Subiu de nível", detail: "Novo nível pessoal no HALO" },
   { icon: "bedtime", title: "Sono sincronizado", detail: "7h20 · eficiência 92%" },
-  { icon: "sync", title: "Sincronização da BAND", detail: "Dados enviados para a nuvem" },
+  { icon: "sync", title: "Sincronização da BAND", detail: "Exemplo de sincronização da pulseira" },
   { icon: "favorite", title: "Marco de saúde", detail: "FC de repouso no melhor valor do mês" },
   { icon: "air", title: "SpO2 estável", detail: "Média de 97% durante todo o dia" },
 ];

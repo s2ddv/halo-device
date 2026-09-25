@@ -4,24 +4,28 @@
  * -> score de nível (média móvel 30 dias) -> nível público (0-10).
  */
 
-export type SubScoreKey =
-  | "recovery"
-  | "sleep"
-  | "spo2"
-  | "heartRate"
-  | "activity"
-  | "temperature";
+export type SubScoreKey = "recovery" | "sleep" | "spo2" | "heartRate" | "activity" | "temperature";
 
 export const SUB_SCORE_META: Record<
   SubScoreKey,
   { label: string; weight: number; icon: string; colorVar: string }
 > = {
-  recovery: { label: "Recuperação e estresse", weight: 0.25, icon: "self_improvement", colorVar: "--activity" },
+  recovery: {
+    label: "Recuperação e estresse",
+    weight: 0.25,
+    icon: "self_improvement",
+    colorVar: "--activity",
+  },
   sleep: { label: "Sono", weight: 0.25, icon: "bedtime", colorVar: "--sleep" },
   spo2: { label: "Oxigênio (SpO2)", weight: 0.15, icon: "air", colorVar: "--oxygen" },
   heartRate: { label: "Frequência cardíaca", weight: 0.15, icon: "favorite", colorVar: "--heart" },
   activity: { label: "Atividade", weight: 0.15, icon: "directions_run", colorVar: "--sport" },
-  temperature: { label: "Temperatura corporal", weight: 0.05, icon: "device_thermostat", colorVar: "--cycle" },
+  temperature: {
+    label: "Temperatura corporal",
+    weight: 0.05,
+    icon: "device_thermostat",
+    colorVar: "--cycle",
+  },
 };
 
 export const CALIBRATION_DAYS = 14;
@@ -147,43 +151,3 @@ export const LEVEL_COLORS: Record<number, string> = {
   9: "var(--heart)",
   10: "var(--heart)",
 };
-
-// ---------- Dados de demonstração (substituíveis por dados reais da BAND) ----------
-
-function seeded(i: number) {
-  return (Math.sin(i * 12.9898) * 43758.5453) % 1;
-}
-
-export const todaySubScores: Record<SubScoreKey, number> = {
-  recovery: 78,
-  sleep: sleepSubScore({ durationHours: 7.4, deepMinutes: 92, remMinutes: 88, efficiency: 91 }),
-  spo2: Math.round(spo2SubScore(97)),
-  heartRate: baselineSubScore(58, 56, 3.4),
-  activity: activitySubScore({
-    steps: 8420,
-    stepsGoal: 10000,
-    calories: 612,
-    caloriesGoal: 700,
-    workoutMinutes: 35,
-    workoutGoal: 45,
-  }),
-  temperature: baselineSubScore(36.6, 36.5, 0.25),
-};
-
-export const dailyHistory: number[] = Array.from({ length: 30 }, (_, i) => {
-  const noise = Math.abs(seeded(i + 1));
-  const missed = i === 6 || i === 19;
-  if (missed) return 0;
-  return Math.round(620 + i * 4 + noise * 90);
-});
-
-export const activeDaysLast30 = dailyHistory.filter((d) => d > 0).length;
-
-export const leaderboard = [
-  { name: "Marina R.", score: 921, position: 1 },
-  { name: "Caio F.", score: 884, position: 2 },
-  { name: "Lu Andrade", score: 851, position: 3 },
-  { name: "Samuel", score: levelScore(dailyHistory), position: 12, isMe: true },
-  { name: "Bia M.", score: 690, position: 13 },
-  { name: "Pedro L.", score: 654, position: 14 },
-].sort((a, b) => b.score - a.score);

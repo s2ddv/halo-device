@@ -63,7 +63,9 @@ function Spo2Page() {
       <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
         <div className="flex items-center gap-2">
           <Icon name="air" className="text-[16px] text-oxygen" />
-          <span className="font-numeric text-label-caps text-on-background">SpO2 ao longo do dia</span>
+          <span className="font-numeric text-label-caps text-on-background">
+            SpO2 ao longo do dia
+          </span>
         </div>
         <LineChart series={series} colorVar="--oxygen" />
       </section>

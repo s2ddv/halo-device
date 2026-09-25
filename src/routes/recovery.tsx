@@ -89,7 +89,9 @@ function RecoveryPage() {
       </section>
 
       <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
-        <span className="font-numeric text-label-caps text-on-background">Estresse ao longo do dia</span>
+        <span className="font-numeric text-label-caps text-on-background">
+          Estresse ao longo do dia
+        </span>
         <div className="flex h-24 items-end gap-1">
           {hourly.map((v, i) => (
             <div
@@ -112,7 +114,10 @@ function RecoveryPage() {
         <span className="font-numeric text-label-caps text-on-background">O que fazer agora</span>
         {[
           { icon: "bolt", text: "Recuperação alta: dá pra treinar forte hoje." },
-          { icon: "self_improvement", text: "5 min de respiração baixam o estresse em média 8 pontos." },
+          {
+            icon: "self_improvement",
+            text: "5 min de respiração baixam o estresse em média 8 pontos.",
+          },
           { icon: "bedtime", text: "Dormir 30 min mais cedo sobe sua recuperação de amanhã." },
         ].map((t) => (
           <div key={t.text} className="flex items-start gap-sm">

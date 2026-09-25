@@ -31,10 +31,46 @@ export const GOAL_META: {
   step: number;
   colorVar: string;
 }[] = [
-  { key: "steps", label: "Passos por dia", unit: "passos", icon: "directions_walk", min: 2000, max: 25000, step: 500, colorVar: "--activity" },
-  { key: "calories", label: "Calorias ativas", unit: "kcal", icon: "local_fire_department", min: 200, max: 1500, step: 25, colorVar: "--sport" },
-  { key: "workoutMinutes", label: "Minutos de treino", unit: "min", icon: "fitness_center", min: 10, max: 180, step: 5, colorVar: "--heart" },
-  { key: "sleepHours", label: "Horas de sono", unit: "h", icon: "bedtime", min: 5, max: 10, step: 0.5, colorVar: "--sleep" },
+  {
+    key: "steps",
+    label: "Passos por dia",
+    unit: "passos",
+    icon: "directions_walk",
+    min: 2000,
+    max: 25000,
+    step: 500,
+    colorVar: "--activity",
+  },
+  {
+    key: "calories",
+    label: "Calorias ativas",
+    unit: "kcal",
+    icon: "local_fire_department",
+    min: 200,
+    max: 1500,
+    step: 25,
+    colorVar: "--sport",
+  },
+  {
+    key: "workoutMinutes",
+    label: "Minutos de treino",
+    unit: "min",
+    icon: "fitness_center",
+    min: 10,
+    max: 180,
+    step: 5,
+    colorVar: "--heart",
+  },
+  {
+    key: "sleepHours",
+    label: "Horas de sono",
+    unit: "h",
+    icon: "bedtime",
+    min: 5,
+    max: 10,
+    step: 0.5,
+    colorVar: "--sleep",
+  },
 ];
 
 /** Métricas destacadas por cada Modo Foco. */
