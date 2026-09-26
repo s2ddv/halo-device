@@ -164,19 +164,72 @@ funcionaram, mas a assinatura isolada não reproduziu o fluxo anterior.
 Inicialização por comandos ou estado previamente configurado são hipóteses;
 não enviar comandos deduzidos só dos bytes recebidos.
 
-## Próxima captura: sessão do QRing
+## Pesquisa pública: correspondência com Colmi/QRing
 
-Identificar modelo do telefone e versão do Android para orientar a coleta.
-Usar o log Bluetooth HCI do Android para observar uma conexão/sincronização
-normal do QRing, com o nRF Connect desconectado. Anotar os horários de conectar,
-sincronizar e solicitar uma medição, uma ação por vez. A captura deve permitir
-correlacionar escritas ATT, UUIDs/handles e respostas, em vez de presumir comandos.
+Consulta em 25/09/2026. Fontes são implementações/documentação de seus autores;
+compatibilidade declarada para anéis não equivale a teste desta pulseira RS25.
 
-A ativação do log HCI e a coleta via relatório de bug são descritas na
-[documentação de depuração Bluetooth do Android](https://source.android.com/docs/core/connect/bluetooth/verifying_debugging).
-A disponibilidade e o caminho de extração dependem do telefone. Relatórios de
-bug podem conter dados de outros apps; manter o relatório completo fora do Git
-e extrair somente o tráfego necessário. Desativar a coleta ao terminar.
+- [DaFitDesktop](https://github.com/arklnd/DaFitDesktop): cliente Windows/C++ para
+  Da Fit/MOYOUNG V2, testado pelo autor com Marv Neo. Documenta `FEEA` e
+  características `FEE1/FEE2/FEE3`, com comandos iniciados por `AB`.
+  Esses identificadores e esse envelope diferem dos observados na HALO BAND;
+  o projeto é uma referência de método, não um driver diretamente confirmado.
+- [colmi_r02_client](https://github.com/tahnok/colmi_r02_client): cliente Python
+  para Colmi R02/R06/R10, com heurística de compatibilidade baseada no app QRing.
+  O serviço `6e40fff0…` e as características `6e400002…`/`6e400003…` coincidem
+  exatamente com o inventário da pulseira.
+- [packet.py](https://github.com/tahnok/colmi_r02_client/blob/main/colmi_r02_client/packet.py):
+  implementação de pacotes de 16 bytes com soma dos bytes e máscara `& 255`,
+  equivalente a módulo 256. O comentário que menciona módulo 255 é impreciso;
+  o código coincide com o checksum dos 190 pacotes capturados.
+- [battery.py](https://github.com/tahnok/colmi_r02_client/blob/main/colmi_r02_client/battery.py):
+  consulta de bateria com comando `0x03`; resposta interpreta byte 1 como nível
+  e byte 2 como estado de carga. Essa semântica ainda precisa de teste na RS25.
+- [openring](https://github.com/robinojw/openring): implementação TypeScript com
+  adaptador Web Bluetooth, canal de comandos `6e40fff0…` e canal de históricos
+  `de5bf728…`, ambos presentes na HALO BAND. Candidato a referência para o PWA,
+  ainda não instalado nem validado com nosso hardware.
+- [Colmi BLE API](https://colmi.puxtril.com/): documentação de RE do QRing,
+  testada pelo autor no Colmi R03; útil para comparar comandos e respostas.
+
+Conclusão: há evidência forte de protocolo compartilhado com a família
+Colmi/QRing. Isso não identifica o fabricante OEM da HALO BAND, o chipset,
+a cadeia comercial da HALO Ltda nem compatibilidade integral. Não foi encontrada
+nesta pesquisa uma confirmação específica do firmware `RS25_1.00.29_251106`.
+
+## Próximo teste: consulta de bateria documentada
+
+Teste de compatibilidade pendente no dispositivo físico, sem instalação de
+biblioteca externa e sem alteração automática do app:
+
+1. QRing desativado; conectar no nRF Connect.
+2. No serviço `6e40fff0-b5a3-f393-e0a9-e50e24dcca9e`, habilitar notificações em
+   `6e400003-b5a3-f393-e0a9-e50e24dcca9e` e confirmar a assinatura no log.
+3. Escrever uma única vez em `6e400002-b5a3-f393-e0a9-e50e24dcca9e`, usando
+   entrada hexadecimal (não texto), o pacote documentado de consulta de bateria:
+
+```text
+03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03
+```
+
+4. Exportar o log incluindo escrita e eventual resposta. Confirmar tipo `03`,
+   comprimento de 16 bytes, checksum e plausibilidade dos campos; comparar o
+   nível com o QRing em uma sessão posterior, separada.
+
+Esse pacote tem 14 bytes centrais zerados. O último `03` é o checksum.
+Uma resposta positiva valida essa consulta, não todos os comandos da família.
+Os pacotes `03` da primeira captura são compatíveis com a interpretação pública
+de bateria, mas não houve comparação independente para confirmar seu significado.
+
+Se a consulta falhar ou houver divergência, seguir com captura Bluetooth HCI de
+uma sessão normal do QRing. Identificar modelo do telefone e Android para orientar
+a coleta. Registrar os horários de conexão, sincronização e uma solicitação de
+medição por vez, com nRF Connect desconectado.
+
+A coleta HCI é descrita na
+[documentação Android](https://source.android.com/docs/core/connect/bluetooth/verifying_debugging).
+A extração depende do telefone. Manter relatórios completos fora do Git e
+extrair só o tráfego necessário; desativar a coleta ao terminar.
 
 ## Limites da implementação atual
 
