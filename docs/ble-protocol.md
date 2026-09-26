@@ -140,7 +140,7 @@ Logs privados podem ficar em `docs/ble-captures/`, ignorado pelo Git. O arquivo
 original recebido permanece fora do repositório; nenhum dump pessoal foi copiado
 para fixtures ou documentação.
 
-## Segunda sessão — assinatura sem emissão
+## Segunda sessão — janela inicial sem emissão
 
 Log de 25/09/2026, das 23:21:41.563 às 23:25:02.357:
 
@@ -159,10 +159,32 @@ Log de 25/09/2026, das 23:21:41.563 às 23:25:02.357:
 - Não há comandos `writeCharacteristic` nem assinatura explícita de
   `de5bf729…` nessa sessão.
 
-Conclusão limitada à sessão: conexão GATT, leituras e habilitação de NOTIFY
+Conclusão limitada ao trecho inicial: conexão GATT, leituras e habilitação de NOTIFY
 funcionaram, mas a assinatura isolada não reproduziu o fluxo anterior.
 Inicialização por comandos ou estado previamente configurado são hipóteses;
 não enviar comandos deduzidos só dos bytes recebidos.
+
+### Continuação da segunda sessão — notificações tardias
+
+O log ampliado até 23:33:40.899 contém quatro notificações em `6e400003…`,
+entre 23:30:16.137 e 23:32:15.827. O analisador offline confirmou que todas têm
+16 bytes, checksum válido e tipo `0x73`. O significado e o gatilho desses eventos
+continuam desconhecidos. Portanto, a ausência de emissão descrita acima vale
+somente para a janela inicial, não para toda a conexão.
+
+Não existe registro de `writeCharacteristic` nesse arquivo: as escritas são no
+descritor CCCD `0x2902`. A consulta de bateria `0x03` ainda não foi comprovadamente
+enviada. Um byte `03` dentro do payload de um pacote `73` não muda seu tipo.
+
+Após desabilitar e reabilitar notificações, leituras do CCCD retornam apenas
+um byte `00`, que o nRF Connect sinaliza como comprimento incorreto (esperava
+16 bits). Em seguida aparecem chamadas locais para desabilitar notificações.
+O último estado registrado, às 23:33:40.899, é de notificações desabilitadas.
+A causa da resposta curta do descritor não está determinada pelo log.
+
+Para repetir o teste, reabilitar NOTIFY em `6e400003…` e escrever o comando na
+característica `6e400002…`, não no descritor `0x2902`. Evitar ler o CCCD durante
+essa tentativa para não repetir a sequência que terminou com NOTIFY desativado.
 
 ## Pesquisa pública: correspondência com Colmi/QRing
 
