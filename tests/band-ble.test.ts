@@ -5,11 +5,13 @@ import {
   HALO_CHANNELS,
   makePrimaryCommand,
   parseColmiBattery,
+  parseColmiLive,
 } from "../src/lib/ble/halo-protocol.ts";
 
 function setup(t: Parameters<Parameters<typeof test>[1]>[0]) {
   const order: string[] = [];
   let respond = true;
+  const writes: Uint8Array[] = [];
   const notify = Object.assign(new EventTarget(), {
     value: new DataView(new ArrayBuffer(0)),
     async startNotifications() {
@@ -26,8 +28,13 @@ function setup(t: Parameters<Parameters<typeof test>[1]>[0]) {
   const write = {
     async writeValueWithoutResponse(packet: Uint8Array) {
       order.push("write");
-      assert.deepEqual([...packet], [3, ...Array(14).fill(0), 3]);
-      if (respond) emit(makePrimaryCommand(3, new Uint8Array([64, 1])));
+      writes.push(packet.slice());
+      if (packet[0] === 3) {
+        assert.deepEqual([...packet], [3, ...Array(14).fill(0), 3]);
+        if (respond) emit(makePrimaryCommand(3, new Uint8Array([64, 1])));
+      } else if (respond && packet[0] === 0x69) {
+        emit(makePrimaryCommand(0x69, new Uint8Array([packet[1]!, 0, 70])));
+      }
     },
   };
   const device = Object.assign(new EventTarget(), {
@@ -74,6 +81,8 @@ function setup(t: Parameters<Parameters<typeof test>[1]>[0]) {
   });
   return {
     order,
+    writes,
+    write,
     emit,
     device,
     silence() {
@@ -141,4 +150,68 @@ test("abort disconnects and rejects a pending query", async (t) => {
   controller.abort();
   await failed;
   assert.equal(fixture.device.gatt.connected, false);
+});
+
+test("live parser ignores wrong metrics, zero values, invalid SpO2 and error-bit packets", () => {
+  const packet = (kind: number, status: number, value: number) =>
+    makePrimaryCommand(0x69, new Uint8Array([kind, status, value]));
+  assert.equal(parseColmiLive(packet(3, 0, 97), "heartRate"), null);
+  assert.equal(parseColmiLive(packet(1, 0, 0), "heartRate"), null);
+  assert.equal(parseColmiLive(packet(3, 0, 101), "spo2"), null);
+  assert.equal(parseColmiLive(makePrimaryCommand(0xe9), "heartRate"), null);
+  assert.throws(() => parseColmiLive(packet(1, 2, 0), "heartRate"), /erro de medição/);
+});
+
+test("measurement stops its sensor after the first valid sample", async (t) => {
+  const fixture = setup(t);
+  const connection = await connectBand({});
+  assert.deepEqual(await connection.measure("heartRate"), { metric: "heartRate", value: 70 });
+  assert.deepEqual(
+    fixture.writes.map((p) => [...p.slice(0, 4)]),
+    [
+      [0x69, 1, 1, 0],
+      [0x6a, 1, 0, 0],
+    ],
+  );
+  connection.disconnect();
+});
+
+test("measurement timeout sends stop and releases the command slot", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const fixture = setup(t);
+  fixture.silence();
+  const connection = await connectBand({});
+  const failed = assert.rejects(connection.measure("spo2"), /45 segundos/);
+  // Let the simulated GATT write settle before advancing time.
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(45_000);
+  await failed;
+  assert.deepEqual([...fixture.writes.at(-1)!.slice(0, 4)], [0x6a, 3, 0, 0]);
+  const battery = connection.readBattery();
+  fixture.emit(makePrimaryCommand(3, new Uint8Array([25])));
+  assert.equal((await battery).level, 25);
+  connection.disconnect();
+});
+
+test("sensor errors stop measurement without overlapping a GATT write", async (t) => {
+  const fixture = setup(t);
+  fixture.silence();
+  let release: () => void = () => {};
+  fixture.write.writeValueWithoutResponse = async (packet) => {
+    fixture.writes.push(packet);
+    if (packet[0] === 0x69) {
+      fixture.emit(makePrimaryCommand(0x69, new Uint8Array([1, 2, 0])));
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    }
+  };
+  const connection = await connectBand({});
+  const failed = assert.rejects(connection.measure("heartRate"), /erro de medição/);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(fixture.writes.length, 1);
+  release();
+  await failed;
+  assert.equal(fixture.writes[1]![0], 0x6a);
+  connection.disconnect();
 });

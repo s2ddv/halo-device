@@ -46,3 +46,20 @@ export function parseColmiBattery(bytes: Uint8Array): { level: number; charging:
   if (!frame.valid || frame.type !== 0x03 || frame.payload[0]! > 100) return null;
   return { level: frame.payload[0]!, charging: frame.payload[1] !== 0 };
 }
+
+export type LiveMetric = "heartRate" | "spo2";
+export const LIVE_METRIC_IDS = { heartRate: 1, spo2: 3 } as const;
+export type LiveReading = { metric: LiveMetric; value: number };
+
+/** A zero value means the sensor is still measuring, not a usable sample. */
+export function parseColmiLive(bytes: Uint8Array, metric: LiveMetric): LiveReading | null {
+  const frame = inspectPrimaryFrame(bytes);
+  if (!frame.valid || frame.type !== 0x69 || frame.payload[0] !== LIVE_METRIC_IDS[metric]) {
+    return null;
+  }
+  const errorCode = frame.payload[1]!;
+  if (errorCode !== 0) throw new Error(`A pulseira retornou erro de medição (${errorCode}).`);
+  const value = frame.payload[2]!;
+  if (value === 0 || (metric === "spo2" && value > 100)) return null;
+  return { metric, value };
+}

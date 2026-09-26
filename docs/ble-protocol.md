@@ -273,8 +273,18 @@ listeners/consulta pendente ao desconectar ou cancelar. Eventos desconhecidos,
 incluindo `73`, não são interpretados como bateria nem como medições.
 
 A implementação substitui o experimento anterior com o serviço padrão de HR.
-Não grava medições de saúde a partir do protocolo Colmi: históricos, medições
-em tempo real e o canal secundário continuam pendentes. A conexão GATT e uma
+O perfil também oferece medição manual de HR e SpO₂. Segue
+[real_time.py](https://github.com/tahnok/colmi_r02_client/blob/main/colmi_r02_client/real_time.py):
+comando `69`, tipo `01` (HR) ou `03` (SpO₂), ação `01`; resposta `69` com tipo,
+código de erro e valor nos bytes 1, 2 e 3. Zero aguarda outra amostra; SpO₂ acima
+de 100 é rejeitado. O comando `6A` com tipo e zeros encerra a medição depois da
+primeira amostra válida, erro do sensor ou timeout de 45 segundos. As operações
+são exclusivas e as escritas GATT têm limite de cinco segundos; falha ao parar
+encerra a conexão. Uma desconexão física impede enviar o comando de parada.
+
+A captura é experimental, limitada à sessão e não persiste medições nem alimenta
+o score. HR instantâneo não é HR de repouso. Históricos e o canal secundário
+continuam pendentes. A conexão GATT e uma
 resposta de bateria não validam os demais comandos.
 
 Validação automatizada usa dispositivos simulados e pacotes sintéticos. Ainda

@@ -13,8 +13,9 @@ Não há configuração de instalação/offline de PWA (manifest/service worker)
 - `src/routes/`: painel, métricas, perfil, relatórios e progressão.
 - `src/lib/demo/`: exemplos de pontuação; nunca persistidos como medições reais.
 - `src/lib/health/`: modelo de dados, histórico diário, calibração e persistência local.
-- `src/lib/band-ble.ts`: Web Bluetooth com protocolo Colmi/QRing assumido e consulta de bateria; validação física pendente.
+- `src/lib/band-ble.ts`: Web Bluetooth com protocolo Colmi/QRing assumido com bateria e medição manual de HR/SpO₂; validação física pendente.
 - `docs/ble-protocol.md`: plano de descoberta e registro do protocolo do hardware.
+- `docs/android-apk-plan.md`: plano do APK Kotlin/Compose para uso pessoal no Galaxy A54.
 - `docs/data-model.md`: regras e limites da camada de dados.
 - `tests/`: testes das regras de histórico e validação de dados.
 

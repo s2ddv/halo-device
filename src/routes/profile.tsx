@@ -3,6 +3,7 @@ import { activeDaysLast30, dailyHistory, todaySubScores } from "@/lib/demo/scori
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/AppShell";
+import type { LiveMetric } from "@/lib/ble/halo-protocol";
 import { connectBand, isBluetoothSupported, type BandConnection } from "@/lib/band-ble";
 import { FOCUS_META, GOAL_META, usePreferences, type FocusMode } from "@/lib/preferences";
 import {
@@ -87,6 +88,8 @@ function ProfileTab() {
   );
   const [supported, setSupported] = useState(false);
   const [band, setBand] = useState<BandConnection | null>(null);
+  const [live, setLive] = useState<Partial<Record<LiveMetric, number>>>({});
+  const [measuring, setMeasuring] = useState<LiveMetric | null>(null);
   const [charging, setCharging] = useState(false);
   const [readingBattery, setReadingBattery] = useState(false);
   const [battery, setBattery] = useState<number | null>(null);
@@ -114,6 +117,8 @@ function ProfileTab() {
     connectionRef.current = null;
     setBand(null);
     setCharging(false);
+    setLive({});
+    setMeasuring(null);
     setReadingBattery(false);
     setBattery(null);
     setStatus("idle");
@@ -127,6 +132,8 @@ function ProfileTab() {
     connectionRef.current = null;
     setBand(null);
     setCharging(false);
+    setLive({});
+    setMeasuring(null);
     setReadingBattery(false);
     setBattery(null);
     connectionAbort.current = new AbortController();
@@ -139,6 +146,8 @@ function ProfileTab() {
           if (attempt !== connectionAttempt.current) return;
           connectionRef.current = null;
           setCharging(false);
+          setLive({});
+          setMeasuring(null);
           setReadingBattery(false);
           setBattery(null);
           setStatus("idle");
@@ -175,6 +184,31 @@ function ProfileTab() {
       }
     } finally {
       if (attempt === connectionAttempt.current) setReadingBattery(false);
+    }
+  }
+
+  async function measure(metric: LiveMetric) {
+    const connection = connectionRef.current;
+    if (!connection) return;
+    const attempt = connectionAttempt.current;
+    setMeasuring(metric);
+    setMessage(null);
+    setLive((previous) => {
+      const next = { ...previous };
+      delete next[metric];
+      return next;
+    });
+    try {
+      const result = await connection.measure(metric);
+      if (attempt === connectionAttempt.current && connectionRef.current === connection) {
+        setLive((previous) => ({ ...previous, [metric]: result.value }));
+      }
+    } catch (error) {
+      if (attempt === connectionAttempt.current) {
+        setMessage(error instanceof Error ? error.message : "Falha na medição.");
+      }
+    } finally {
+      if (attempt === connectionAttempt.current) setMeasuring(null);
     }
   }
 
@@ -238,7 +272,9 @@ function ProfileTab() {
               Leituras de saúde
             </span>
             <span className="font-numeric text-title-md text-on-background">
-              Aguardando integração
+              {live.heartRate != null ? `${live.heartRate} bpm` : "— bpm"}
+              {" · "}
+              {live.spo2 != null ? `${live.spo2}% SpO₂` : "— SpO₂"}
             </span>
           </div>
           <div className="flex flex-col gap-1 rounded-lg bg-surface-container-low p-sm">
@@ -266,13 +302,36 @@ function ProfileTab() {
         {status === "connected" && band && (
           <button
             type="button"
-            disabled={readingBattery}
+            disabled={readingBattery || measuring !== null}
             onClick={() => void queryBattery(band)}
             className="relative z-10 rounded-full border border-border py-3 text-body-sm disabled:opacity-50"
           >
             Consultar bateria
           </button>
         )}
+        {status === "connected" && (
+          <div className="relative z-10 flex flex-wrap gap-2">
+            {(["heartRate", "spo2"] as const).map((metric) => (
+              <button
+                key={metric}
+                type="button"
+                disabled={readingBattery || measuring !== null}
+                onClick={() => void measure(metric)}
+                className="flex-1 rounded-full border border-border px-3 py-3 text-body-sm disabled:opacity-50"
+              >
+                {measuring === metric
+                  ? "Medindo…"
+                  : metric === "heartRate"
+                    ? "Medir batimentos"
+                    : "Medir SpO₂"}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="relative z-10 text-body-sm text-on-surface-variant">
+          Use a pulseira e mantenha-se parado durante a medição (até 45 segundos). Valores
+          experimentais desta sessão; ainda não são salvos nem usados no score.
+        </p>
         <p className="relative z-10 text-body-sm text-on-surface-variant">
           Feche a conexão no QRing e no nRF Connect antes de conectar. A bateria usa compatibilidade
           experimental com QRing; as leituras de saúde ainda não alimentam o score.

@@ -1,10 +1,19 @@
-import { HALO_CHANNELS, makePrimaryCommand, parseColmiBattery } from "./ble/halo-protocol.ts";
+import {
+  HALO_CHANNELS,
+  makePrimaryCommand,
+  parseColmiBattery,
+  parseColmiLive,
+  LIVE_METRIC_IDS,
+  type LiveMetric,
+  type LiveReading,
+} from "./ble/halo-protocol.ts";
 
 export type BatteryInfo = { level: number; charging: boolean };
 export type BandConnection = {
   id: string;
   name: string;
   readBattery: () => Promise<BatteryInfo>;
+  measure: (metric: LiveMetric) => Promise<LiveReading>;
   disconnect: () => void;
 };
 
@@ -55,8 +64,9 @@ export async function connectBand(handlers: {
   handlers.signal?.throwIfAborted();
   let closed = false;
   let notify: Characteristic | undefined;
-  let pending: { resolve: (battery: BatteryInfo) => void; reject: (error: Error) => void } | null =
+  let pending: { receive: (bytes: Uint8Array) => void; reject: (error: Error) => void } | null =
     null;
+  let busy = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const finishRequest = () => {
     clearTimeout(timer);
@@ -85,12 +95,7 @@ export async function connectBand(handlers: {
   const receive = () => {
     if (closed || !pending || !notify?.value) return;
     const value = notify.value;
-    const battery = parseColmiBattery(
-      new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-    );
-    if (!battery) return;
-    pending.resolve(battery);
-    finishRequest();
+    pending.receive(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
   };
   device.addEventListener("gattserverdisconnected", disconnected);
   handlers.signal?.addEventListener("abort", disconnect, { once: true });
@@ -106,29 +111,111 @@ export async function connectBand(handlers: {
     notify.addEventListener("characteristicvaluechanged", receive);
     await notify.startNotifications();
     ensureActive();
+    // Serialize GATT writes and bound a stalled browser write before any next command.
+    const send = async (packet: Uint8Array) => {
+      ensureActive();
+      let writeTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          write.writeValueWithoutResponse(packet),
+          new Promise<never>((_, reject) => {
+            writeTimer = setTimeout(() => {
+              disconnect();
+              handlers.onDisconnect?.();
+              reject(new Error("A escrita Bluetooth não terminou. Reconecte a pulseira."));
+            }, 5_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(writeTimer);
+      }
+    };
+    const request = async <T>(
+      packet: Uint8Array,
+      parse: (bytes: Uint8Array) => T | null,
+      timeout: number,
+    ): Promise<T> => {
+      const response = new Promise<T>((resolve, reject) => {
+        pending = {
+          reject,
+          receive(bytes) {
+            try {
+              const result = parse(bytes);
+              if (result === null) return;
+              finishRequest();
+              resolve(result);
+            } catch (error) {
+              finishRequest();
+              reject(error instanceof Error ? error : new Error("Resposta inválida."));
+            }
+          },
+        };
+        timer = setTimeout(() => {
+          finishRequest();
+          reject(new Error(`Sem resposta após ${timeout / 1000} segundos. Tente novamente.`));
+        }, timeout);
+      });
+      // Both promises have rejection handlers immediately, including synchronous replies.
+      try {
+        const [result, sent] = await Promise.allSettled([
+          response,
+          send(packet).catch((error: unknown) => {
+            pending?.reject(
+              error instanceof Error ? error : new Error("Falha na escrita Bluetooth."),
+            );
+            throw error;
+          }),
+        ]);
+        if (sent.status === "rejected") throw sent.reason;
+        if (result.status === "rejected") throw result.reason;
+        return result.value;
+      } finally {
+        finishRequest();
+      }
+    };
+    const exclusive = async <T>(operation: () => Promise<T>) => {
+      ensureActive();
+      if (busy) throw new Error("Uma consulta já está em andamento.");
+      busy = true;
+      try {
+        return await operation();
+      } finally {
+        busy = false;
+      }
+    };
     return {
       id: device.id,
       name: device.name ?? "HALO BAND",
       disconnect,
-      readBattery() {
-        ensureActive();
-        if (pending) return Promise.reject(new Error("Uma consulta já está em andamento."));
-        return new Promise<BatteryInfo>((resolve, reject) => {
-          const request = { resolve, reject };
-          pending = request;
-          timer = setTimeout(() => {
-            if (pending !== request) return;
-            finishRequest();
-            reject(new Error("Sem resposta de bateria após 10 segundos. Tente novamente."));
-          }, 10_000);
-          // Install the response handler before writing: notifications may arrive immediately.
-          void write.writeValueWithoutResponse(makePrimaryCommand(0x03)).catch((error: unknown) => {
-            if (pending !== request) return;
-            finishRequest();
-            reject(error instanceof Error ? error : new Error("Falha ao consultar bateria."));
-          });
-        });
-      },
+      readBattery: () =>
+        exclusive(() => request(makePrimaryCommand(0x03), parseColmiBattery, 10_000)),
+      measure: (metric) =>
+        exclusive(async () => {
+          const kind = LIVE_METRIC_IDS[metric];
+          const outcome = await request(
+            makePrimaryCommand(0x69, new Uint8Array([kind, 1])),
+            (bytes) => parseColmiLive(bytes, metric),
+            45_000,
+          ).then(
+            (value) => ({ ok: true as const, value }),
+            (error: unknown) => ({ ok: false as const, error }),
+          );
+          // Stop after a sample, sensor error or timeout; a lost link cannot accept writes.
+          if (!closed && device.gatt.connected) {
+            try {
+              await send(makePrimaryCommand(0x6a, new Uint8Array([kind, 0, 0])));
+            } catch (error) {
+              if (!closed) {
+                disconnect();
+                handlers.onDisconnect?.();
+              }
+              throw error;
+            }
+          }
+          if (!outcome.ok) throw outcome.error;
+          ensureActive();
+          return outcome.value;
+        }),
     };
   } catch (error) {
     disconnect();
