@@ -255,11 +255,33 @@ extrair só o tráfego necessário; desativar a coleta ao terminar.
 
 ## Limites da implementação atual
 
-O wrapper `band-ble.ts` ainda exige o serviço padrão `heart_rate`, ausente do
-inventário recebido. Portanto, ele ainda não implementa a conexão com esta HALO BAND.
-Os módulos novos analisam logs offline. A próxima integração deverá usar os UUIDs
-confirmados, coletar dados brutos separadamente de medições validadas e testar a
-assinatura/reconexão com o hardware antes de alimentar gráficos ou score.
+Por decisão do proprietário, `colmi_r02_client` passa a ser a hipótese de
+compatibilidade adotada para implementar o MVP. Isso não confirma a identidade
+OEM nem a semântica de todas as métricas na RS25.
+
+O wrapper `band-ble.ts` agora conecta ao serviço proprietário `6e40fff0…`,
+assina `6e400003…` e envia a consulta de bateria `0x03` em `6e400002…` com
+escrita sem resposta, seguindo o cliente de referência. A seleção aceita o
+serviço anunciado ou nomes iniciados por `Y25`; o serviço é solicitado
+explicitamente mesmo quando o anúncio contém apenas o nome.
+
+No perfil, conectar inicia uma consulta de bateria; o botão Consultar bateria
+permite repetir. Respostas exigem tipo `03`, 16 bytes, checksum correto e nível
+entre 0 e 100. O byte seguinte indica carga (zero = não carregando). Há limite
+de dez segundos por consulta, rejeição de consultas simultâneas e limpeza de
+listeners/consulta pendente ao desconectar ou cancelar. Eventos desconhecidos,
+incluindo `73`, não são interpretados como bateria nem como medições.
+
+A implementação substitui o experimento anterior com o serviço padrão de HR.
+Não grava medições de saúde a partir do protocolo Colmi: históricos, medições
+em tempo real e o canal secundário continuam pendentes. A conexão GATT e uma
+resposta de bateria não validam os demais comandos.
+
+Validação automatizada usa dispositivos simulados e pacotes sintéticos. Ainda
+é necessário testar no Chrome Android em HTTPS com QRing e nRF desconectados:
+conectar, confirmar bateria contra QRing em sessão separada, repetir consulta,
+desconectar e reconectar. Ausência de resposta mostra erro sem inventar valor
+nem alimentar o Health Score. Não há reconexão automática em segundo plano.
 
 Referência para operação do aplicativo:
 [documentação do nRF Connect](https://github.com/nordicsemi/Android-nRF-Connect/blob/main/documentation/README.md#connection).

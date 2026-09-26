@@ -87,7 +87,8 @@ function ProfileTab() {
   );
   const [supported, setSupported] = useState(false);
   const [band, setBand] = useState<BandConnection | null>(null);
-  const [bpm, setBpm] = useState<number | null>(null);
+  const [charging, setCharging] = useState(false);
+  const [readingBattery, setReadingBattery] = useState(false);
   const [battery, setBattery] = useState<number | null>(null);
   const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -112,7 +113,8 @@ function ProfileTab() {
     connectionRef.current?.disconnect();
     connectionRef.current = null;
     setBand(null);
-    setBpm(null);
+    setCharging(false);
+    setReadingBattery(false);
     setBattery(null);
     setStatus("idle");
     setMessage(null);
@@ -124,7 +126,8 @@ function ProfileTab() {
     connectionRef.current?.disconnect();
     connectionRef.current = null;
     setBand(null);
-    setBpm(null);
+    setCharging(false);
+    setReadingBattery(false);
     setBattery(null);
     connectionAbort.current = new AbortController();
     setStatus("connecting");
@@ -132,19 +135,11 @@ function ProfileTab() {
     try {
       const connection = await connectBand({
         signal: connectionAbort.current.signal,
-        onHeartRate: (value) => {
-          if (attempt === connectionAttempt.current) setBpm(value);
-        },
-        onError: (value) => {
-          if (attempt === connectionAttempt.current) setMessage(value);
-        },
-        onBattery: (value) => {
-          if (attempt === connectionAttempt.current) setBattery(value);
-        },
         onDisconnect: () => {
           if (attempt !== connectionAttempt.current) return;
           connectionRef.current = null;
-          setBpm(null);
+          setCharging(false);
+          setReadingBattery(false);
           setBattery(null);
           setStatus("idle");
           setBand(null);
@@ -156,13 +151,30 @@ function ProfileTab() {
       }
       connectionRef.current = connection;
       setBand(connection);
-      setBpm(connection.heartRate);
-      setBattery(connection.batteryLevel);
       setStatus("connected");
+      await queryBattery(connection, attempt);
     } catch (error) {
       if (attempt !== connectionAttempt.current) return;
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Não foi possível conectar.");
+    }
+  }
+
+  async function queryBattery(connection: BandConnection, attempt = connectionAttempt.current) {
+    setReadingBattery(true);
+    setMessage(null);
+    setBattery(null);
+    try {
+      const result = await connection.readBattery();
+      if (attempt !== connectionAttempt.current || connectionRef.current !== connection) return;
+      setBattery(result.level);
+      setCharging(result.charging);
+    } catch (error) {
+      if (attempt === connectionAttempt.current && connectionRef.current === connection) {
+        setMessage(error instanceof Error ? error.message : "Falha ao consultar bateria.");
+      }
+    } finally {
+      if (attempt === connectionAttempt.current) setReadingBattery(false);
     }
   }
 
@@ -199,7 +211,7 @@ function ProfileTab() {
         <div className="relative z-10 flex items-start justify-between">
           <div className="flex flex-col">
             <span className="font-numeric text-label-caps text-on-background">
-              Dispositivo · teste BLE padrão
+              Dispositivo · conexão experimental
             </span>
             <span className="font-display text-title-md text-on-background">
               {band?.name ?? "Nenhuma BAND conectada"}
@@ -222,15 +234,21 @@ function ProfileTab() {
 
         <div className="relative z-10 grid grid-cols-2 gap-sm">
           <div className="flex flex-col gap-1 rounded-lg bg-surface-container-low p-sm">
-            <span className="font-numeric text-[10px] text-on-surface-variant">Batimentos</span>
+            <span className="font-numeric text-[10px] text-on-surface-variant">
+              Leituras de saúde
+            </span>
             <span className="font-numeric text-title-md text-on-background">
-              {bpm != null ? `${bpm} bpm` : "—"}
+              Aguardando integração
             </span>
           </div>
           <div className="flex flex-col gap-1 rounded-lg bg-surface-container-low p-sm">
             <span className="font-numeric text-[10px] text-on-surface-variant">Bateria</span>
             <span className="font-numeric text-title-md text-on-background">
-              {battery != null ? `${battery}%` : "—"}
+              {readingBattery
+                ? "Consultando…"
+                : battery != null
+                  ? `${battery}%${charging ? " · carregando" : ""}`
+                  : "—"}
             </span>
           </div>
         </div>
@@ -245,6 +263,20 @@ function ProfileTab() {
           {status === "connected" ? "Desconectar" : "Procurar dispositivo"}
         </button>
 
+        {status === "connected" && band && (
+          <button
+            type="button"
+            disabled={readingBattery}
+            onClick={() => void queryBattery(band)}
+            className="relative z-10 rounded-full border border-border py-3 text-body-sm disabled:opacity-50"
+          >
+            Consultar bateria
+          </button>
+        )}
+        <p className="relative z-10 text-body-sm text-on-surface-variant">
+          Feche a conexão no QRing e no nRF Connect antes de conectar. A bateria usa compatibilidade
+          experimental com QRing; as leituras de saúde ainda não alimentam o score.
+        </p>
         {!supported && (
           <p className="relative z-10 text-body-sm text-on-surface-variant">
             Este navegador não suporta Bluetooth. Abra no Chrome para Android para parear a BAND.

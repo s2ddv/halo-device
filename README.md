@@ -13,7 +13,7 @@ Não há configuração de instalação/offline de PWA (manifest/service worker)
 - `src/routes/`: painel, métricas, perfil, relatórios e progressão.
 - `src/lib/demo/`: exemplos de pontuação; nunca persistidos como medições reais.
 - `src/lib/health/`: modelo de dados, histórico diário, calibração e persistência local.
-- `src/lib/band-ble.ts`: experimento Web Bluetooth com serviços padrão de HR/bateria.
+- `src/lib/band-ble.ts`: Web Bluetooth com protocolo Colmi/QRing assumido e consulta de bateria; validação física pendente.
 - `docs/ble-protocol.md`: plano de descoberta e registro do protocolo do hardware.
 - `docs/data-model.md`: regras e limites da camada de dados.
 - `tests/`: testes das regras de histórico e validação de dados.

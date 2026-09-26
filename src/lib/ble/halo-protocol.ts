@@ -27,3 +27,22 @@ export function inspectPrimaryFrame(bytes: Uint8Array): FrameInspection {
   if (checksum !== bytes[15]) return { valid: false, reason: "checksum" };
   return { valid: true, type: bytes[0]!, payload: bytes.slice(1, 15) };
 }
+
+/** Colmi/QRing command envelope; compatibility with RS25 is assumed, not verified. */
+export function makePrimaryCommand(command: number, payload = new Uint8Array()): Uint8Array {
+  if (!Number.isInteger(command) || command < 0 || command > 255 || payload.length > 14) {
+    throw new RangeError("Invalid primary command or payload length.");
+  }
+  const packet = new Uint8Array(16);
+  packet[0] = command;
+  packet.set(payload, 1);
+  packet[15] = packet.subarray(0, 15).reduce((sum, byte) => sum + byte, 0) & 255;
+  return packet;
+}
+
+/** Battery semantics from colmi_r02_client/battery.py; unrelated packets stay opaque. */
+export function parseColmiBattery(bytes: Uint8Array): { level: number; charging: boolean } | null {
+  const frame = inspectPrimaryFrame(bytes);
+  if (!frame.valid || frame.type !== 0x03 || frame.payload[0]! > 100) return null;
+  return { level: frame.payload[0]!, charging: frame.payload[1] !== 0 };
+}
