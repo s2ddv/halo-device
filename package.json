@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "node --experimental-strip-types --test --test-isolation=none tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ble:inspect": "node --experimental-strip-types scripts/inspect-ble-log.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"
