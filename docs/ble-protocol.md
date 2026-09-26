@@ -7,7 +7,11 @@ Status: **inventário GATT confirmado no log; formato parcial observado; métric
 Informações fornecidas pelo proprietário em 25/09/2026:
 
 - Marca: HALO Device (brasileira); modelo comercial: HALO BAND.
-- App: QRing; versão do app, revisão de hardware e firmware pendentes.
+- App: QRing; versão do app pendente.
+- Hardware lido em `0x2A27`: `RS25_V1.0`.
+- Firmware lido em `0x2A26`: `RS25_1.00.29_251106`.
+  Valores literais reportados pelo dispositivo, sem inferir fabricante do chipset
+  ou data de compilação a partir do nome.
 - Nome mostrado no nRF Connect: `Y25_<sufixo>` (identificador omitido).
 - Android e pulseira disponíveis. O proprietário confirmou que o QRing estava
   desativado durante a captura; o log não permite determinar o estado interno
@@ -78,7 +82,7 @@ outro UUID parecido. O nome RX/TX no log não estabelece a função das métrica
 - `0x2A26` Firmware Revision String: READ.
 - `0x2A23` System ID: READ.
 
-Os valores não foram lidos no log recebido. Não versionar número de série,
+Hardware e firmware foram lidos na segunda sessão (ver abaixo). Não versionar número de série,
 System ID, endereço Bluetooth ou o histórico pessoal bruto.
 
 ## Análise do log exportado
@@ -136,18 +140,43 @@ Logs privados podem ficar em `docs/ble-captures/`, ignorado pelo Git. O arquivo
 original recebido permanece fora do repositório; nenhum dump pessoal foi copiado
 para fixtures ou documentação.
 
-## Próxima captura controlada
+## Segunda sessão — assinatura sem emissão
 
-1. Manter o QRing desativado. Desconectar e reconectar no nRF Connect e anotar
-   o horário; não é necessário redefinir a pulseira.
-2. Selecionar o serviço `6e40fff0…` e habilitar NOTIFY em `6e400003…`.
-   Observar por 30 segundos e exportar o log completo, incluindo a assinatura.
-3. Repetir em `de5bf728…` / `de5bf729…`, anotando o horário de cada ação.
-4. Em Device Information, ler apenas Hardware Revision (`2A27`) e Firmware
-   Revision (`2A26`) para contextualizar o protocolo.
-5. Comparar dados com valores exibidos no QRing em uma etapa separada, após
-   desconectar do nRF Connect. Só atribuir significado aos bytes após correlação
-   reproduzível. Comandos de escrita continuam desconhecidos.
+Log de 25/09/2026, das 23:21:41.563 às 23:25:02.357:
+
+- Conexão confirmada às 23:21:44.236.
+- Falha de atualização dos parâmetros com status 31 às 23:21:44.238.
+  Depois há atualização bem-sucedida às 23:21:44.501, descoberta de serviços
+  com status 0 e outras atualizações de parâmetros. O erro inicial não impediu
+  a descoberta, a assinatura ou as leituras posteriores; sua causa é desconhecida.
+- Inventário de serviços e características consistente com o primeiro log.
+- Assinatura de `6e400003…` confirmada às 23:22:16.520, após escrita do CCCD
+  `0x2902` com `01-00` e confirmação de sucesso.
+- Nenhuma linha de notificação recebida e nenhum evento de desconexão constam
+  no trecho posterior, até 23:25:02.357: janela de 165,837 segundos.
+- Firmware lido com sucesso às 23:25:01.880: `RS25_1.00.29_251106`.
+- Hardware lido com sucesso às 23:25:02.357: `RS25_V1.0`.
+- Não há comandos `writeCharacteristic` nem assinatura explícita de
+  `de5bf729…` nessa sessão.
+
+Conclusão limitada à sessão: conexão GATT, leituras e habilitação de NOTIFY
+funcionaram, mas a assinatura isolada não reproduziu o fluxo anterior.
+Inicialização por comandos ou estado previamente configurado são hipóteses;
+não enviar comandos deduzidos só dos bytes recebidos.
+
+## Próxima captura: sessão do QRing
+
+Identificar modelo do telefone e versão do Android para orientar a coleta.
+Usar o log Bluetooth HCI do Android para observar uma conexão/sincronização
+normal do QRing, com o nRF Connect desconectado. Anotar os horários de conectar,
+sincronizar e solicitar uma medição, uma ação por vez. A captura deve permitir
+correlacionar escritas ATT, UUIDs/handles e respostas, em vez de presumir comandos.
+
+A ativação do log HCI e a coleta via relatório de bug são descritas na
+[documentação de depuração Bluetooth do Android](https://source.android.com/docs/core/connect/bluetooth/verifying_debugging).
+A disponibilidade e o caminho de extração dependem do telefone. Relatórios de
+bug podem conter dados de outros apps; manter o relatório completo fora do Git
+e extrair somente o tráfego necessário. Desativar a coleta ao terminar.
 
 ## Limites da implementação atual
 
