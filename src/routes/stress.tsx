@@ -1,9 +1,9 @@
+import { useDetailPeriod } from "@/lib/demo/use-detail-period";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MetricCard, ScoreRing } from "@/components/health/Visuals";
 import { BreathingExercise } from "@/components/metrics/BreathingExercise";
 import {
   DetailLayout,
-  useDetailPeriod,
   SummaryNumbers,
   TrendCard,
   DistributionCard,

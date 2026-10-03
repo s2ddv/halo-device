@@ -1,9 +1,9 @@
+import { useDetailPeriod } from "@/lib/demo/use-detail-period";
 import { createFileRoute } from "@tanstack/react-router";
 import { Icon } from "@/components/AppShell";
 import { MetricCard } from "@/components/health/Visuals";
 import {
   DetailLayout,
-  useDetailPeriod,
   SummaryNumbers,
   TrendCard,
   DistributionCard,

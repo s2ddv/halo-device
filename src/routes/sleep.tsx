@@ -1,9 +1,10 @@
+import { useDetailPeriod } from "@/lib/demo/use-detail-period";
 import { createFileRoute } from "@tanstack/react-router";
 import { Icon } from "@/components/AppShell";
 import { MetricCard, ScoreRing, Sparkline } from "@/components/health/Visuals";
 import { SleepReport } from "@/components/health/SleepReport";
 import { SleepArchitecture } from "@/components/metrics/SleepArchitecture";
-import { DetailLayout, useDetailPeriod, MetricNote } from "@/components/metrics/DetailLayout";
+import { DetailLayout, MetricNote } from "@/components/metrics/DetailLayout";
 import { nightSignals } from "@/lib/demo/sleep";
 import { usePreferences } from "@/lib/preferences";
 export const Route = createFileRoute("/sleep")({

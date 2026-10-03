@@ -1,13 +1,8 @@
+import { useDetailPeriod } from "@/lib/demo/use-detail-period";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Icon } from "@/components/AppShell";
 import { MetricCard, ScoreRing } from "@/components/health/Visuals";
-import {
-  DetailLayout,
-  useDetailPeriod,
-  TrendCard,
-  MetricNote,
-  ExportDemo,
-} from "@/components/metrics/DetailLayout";
+import { DetailLayout, TrendCard, MetricNote, ExportDemo } from "@/components/metrics/DetailLayout";
 import { detailSeries, summarize } from "@/lib/demo/detail";
 import { usePreferences } from "@/lib/preferences";
 export const Route = createFileRoute("/activity")({

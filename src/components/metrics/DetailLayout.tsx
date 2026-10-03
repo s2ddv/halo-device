@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import type { useDetailPeriod } from "@/lib/demo/use-detail-period";
 import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/AppShell";
 import { LineChart } from "@/components/MetricChart";
@@ -6,12 +7,6 @@ import { MetricCard } from "@/components/health/Visuals";
 import { demoCsv, type Period } from "@/lib/demo/detail";
 import type { Point } from "@/lib/metrics";
 
-export function useDetailPeriod() {
-  // Stable fixture date avoids server/client timezone differences for demo data.
-  const [day, setDay] = useState("2026-10-01");
-  const [period, setPeriod] = useState<Period>("day");
-  return { day, setDay, period, setPeriod };
-}
 export function DetailLayout({
   title,
   eyebrow,

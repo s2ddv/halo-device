@@ -31,12 +31,19 @@ export function detailSeries(metric: DetailMetric, period: Period, day: string):
   const count = period === "day" ? 24 : period === "week" ? 7 : 30;
   return Array.from({ length: count }, (_, i) => {
     const raw = base[period === "day" ? i : (i * 3 + seed) % base.length]!;
+    const offset = (seed % 5) - 2;
+    const adjusted =
+      metric === "temperature"
+        ? Number((raw + offset * 0.1).toFixed(1))
+        : metric === "oxygen"
+          ? Math.min(100, Math.max(90, raw + offset))
+          : Math.max(0, raw + offset * 2);
     const v =
       metric === "steps" || metric === "calories"
         ? period === "day"
-          ? raw
+          ? Math.round(raw * (1 + offset * 0.03))
           : Math.round(base.reduce((a, b) => a + b, 0) * (0.7 + ((i + seed) % 7) / 10))
-        : raw;
+        : adjusted;
     return { t: period === "day" ? `${String(i).padStart(2, "0")}h` : `${i + 1}`, v };
   });
 }
