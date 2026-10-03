@@ -8,7 +8,8 @@ O app web Halo Band criado com Lovable: React 19, TanStack Start e Router/Query,
 TypeScript, Tailwind v4, Radix/shadcn e Recharts. O app permanece na raiz para
 preservar a integração com Lovable. Não há backend nem autenticação implementados.
 As telas de métricas e progressão ainda usam demonstrações, identificadas na interface.
-Não há configuração de instalação/offline de PWA (manifest/service worker) neste momento.
+O app suporta instalação PWA em HTTPS e cache offline de páginas visitadas.
+Veja [deploy e instalação no Android](docs/pwa-deploy.md).
 
 - `src/routes/`: painel, métricas, perfil, relatórios e progressão.
 - `src/lib/demo/`: exemplos de pontuação; nunca persistidos como medições reais.
@@ -18,6 +19,14 @@ Não há configuração de instalação/offline de PWA (manifest/service worker)
 - `docs/android-apk-plan.md`: plano do APK Kotlin/Compose para uso pessoal no Galaxy A54.
 - `docs/data-model.md`: regras e limites da camada de dados.
 - `tests/`: testes das regras de histórico e validação de dados.
+
+## Frontend do Stitch
+
+As dez telas do projeto HALO Device foram adaptadas ao app, com componentes
+compartilhados e layout responsivo. Consulte [o sistema visual](DESIGN.md) e
+[o mapa de implementação e integração](docs/stitch-implementation.md).
+Metas e foco usam persistência local; a integração com uma API remota permanece
+pendente porque este repositório ainda não contém um backend de saúde.
 
 ## Desenvolvimento
 
@@ -50,7 +59,7 @@ lockfiles ou o Gradle Wrapper. Segredos e capturas privadas não devem ser versi
 3. Validar a captura da Halo Band, persistir e alimentar as telas com dados reais.
 4. Calcular progressão, recordes, correlações e alertas sobre o histórico coletado.
 
-Nenhum UUID proprietário foi presumido. Frequência cardíaca instantânea não é
+A compatibilidade proprietária implementada é experimental. Frequência cardíaca instantânea não é
 tratada como frequência de repouso nem usada para inventar recuperação ou sono.
 Os dados locais não são enviados à nuvem; apagar os dados do site remove o histórico.
 
