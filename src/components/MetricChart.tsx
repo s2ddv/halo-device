@@ -155,7 +155,8 @@ export function SingleDaySelector({
           key={d.key}
           type="button"
           onClick={() => onSelect(d.key)}
-          className={`shrink-0 rounded-full border px-4 py-2 font-numeric text-[11px] transition-colors ${
+          aria-pressed={selected === d.key}
+          className={`min-h-11 shrink-0 rounded-full border px-4 py-2 font-numeric text-[11px] transition-colors ${
             selected === d.key
               ? "border-primary bg-primary/15 text-primary"
               : "border-border text-on-surface-variant"
@@ -187,7 +188,7 @@ export function MultiDaySelector({
             type="button"
             aria-pressed={active}
             onClick={() => onToggle(d.key)}
-            className={`shrink-0 rounded-full border px-4 py-2 font-numeric text-[11px] transition-colors ${
+            className={`min-h-11 shrink-0 rounded-full border px-4 py-2 font-numeric text-[11px] transition-colors ${
               active
                 ? "border-primary bg-primary/15 text-primary"
                 : "border-border text-on-surface-variant"
