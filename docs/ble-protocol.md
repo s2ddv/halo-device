@@ -1,6 +1,10 @@
 # Protocolo BLE — HALO BAND
 
-Status: **inventário GATT confirmado no log; formato parcial observado; métricas ainda não decodificadas**.
+Status: **protocolo Colmi adaptado para bateria, HR/SpO₂ ao vivo e histórico de HR/passos; validação física da RS25 pendente**.
+
+Atualização de 03/10/2026: [integração Colmi](colmi-integration.md) documenta a
+implementação atual, persistência e limitações. As seções abaixo conservam o
+registro histórico das capturas e etapas anteriores.
 
 ## Dispositivo e contexto
 

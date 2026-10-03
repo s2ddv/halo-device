@@ -1,5 +1,5 @@
-import { validDay, validateMeasurement, validateSummary } from "./model";
-import type { Measurement, DailySummary } from "./model";
+import { validDay, validateMeasurement, validateSummary } from "./model.ts";
+import type { Measurement, DailySummary } from "./model.ts";
 
 const EVENT = "halo:health-changed";
 const DATABASE = "halo-health";
@@ -53,6 +53,21 @@ async function put(store: string, value: Measurement | DailySummary): Promise<vo
 export async function saveMeasurement(measurement: Measurement) {
   validateMeasurement(measurement);
   await put("measurements", measurement);
+}
+/** Import a complete response atomically; no partial history on disk errors. */
+export async function saveMeasurements(measurements: Measurement[]) {
+  measurements.forEach(validateMeasurement);
+  if (!measurements.length) return;
+  const db = await open();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("measurements", "readwrite");
+    const store = tx.objectStore("measurements");
+    for (const measurement of measurements) store.put(measurement);
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error ?? new Error("Não foi possível salvar o histórico."));
+    tx.onerror = () => reject(tx.error);
+  });
+  window.dispatchEvent(new Event(EVENT));
 }
 export async function saveDailySummary(summary: DailySummary) {
   validateSummary(summary);

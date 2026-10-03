@@ -215,3 +215,52 @@ test("sensor errors stop measurement without overlapping a GATT write", async (t
   assert.equal(fixture.writes[1]![0], 0x6a);
   connection.disconnect();
 });
+
+test("history requests are sequential and empty responses finish without invented samples", async (t) => {
+  const fixture = setup(t);
+  fixture.write.writeValueWithoutResponse = async (packet) => {
+    fixture.writes.push(packet);
+    fixture.emit(makePrimaryCommand(packet[0]!, new Uint8Array([255])));
+  };
+  const connection = await connectBand({});
+  assert.deepEqual(await connection.readHistory(new Date().toISOString().slice(0, 10)), []);
+  assert.deepEqual(
+    fixture.writes.map((p) => p[0]),
+    [0x15, 0x43],
+  );
+  connection.disconnect();
+});
+
+test("history timeout closes the link so late fragments cannot contaminate a retry", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const fixture = setup(t);
+  fixture.silence();
+  const connection = await connectBand({});
+  const failed = assert.rejects(
+    connection.readHistory(new Date().toISOString().slice(0, 10)),
+    /15 segundos/,
+  );
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(15_000);
+  await failed;
+  assert.equal(fixture.device.gatt.connected, false);
+  assert.deepEqual(
+    fixture.writes.map((p) => p[0]),
+    [0x15],
+  );
+  await assert.rejects(connection.readBattery(), /desconectada/);
+});
+
+test("physical disconnect during history reports disconnection only once", async (t) => {
+  const fixture = setup(t);
+  fixture.silence();
+  let calls = 0;
+  const connection = await connectBand({ onDisconnect: () => calls++ });
+  const failed = assert.rejects(
+    connection.readHistory(new Date().toISOString().slice(0, 10)),
+    /desconectou/,
+  );
+  fixture.device.gatt.disconnect();
+  await failed;
+  assert.equal(calls, 1);
+});

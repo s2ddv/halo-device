@@ -1,6 +1,16 @@
 # Status do projeto HALO Device
 
-## Estado verificado em 03/10/2026
+## Integração Colmi em 03/10/2026
+
+Cliente `colmi_r02_client` adaptado ao Web Bluetooth: histórico diário de HR e
+passos, persistência local de medições ao vivo e importação sem duplicação.
+39 testes, typecheck e build Netlify passaram; lint sem erros, seis avisos
+preexistentes. Validação física da RS25 e aprovação do proprietário pendentes.
+Não há API remota; gráficos demonstrativos e score continuam separados.
+Detalhes, licença, limites de relógio UTC e roteiro de teste em
+[Integração Colmi](colmi-integration.md).
+
+## Estado anterior verificado em 03/10/2026
 
 - Dez telas do Stitch adaptadas, incluindo as novas rotas `/stress`,
   `/temperature` e `/activity`. Cada página foi publicada em commit próprio.

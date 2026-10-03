@@ -1,4 +1,11 @@
 import {
+  heartRateParser,
+  heartRateRequest,
+  stepsParser,
+  stepsRequest,
+  type HistorySample,
+} from "./ble/colmi-history.ts";
+import {
   HALO_CHANNELS,
   makePrimaryCommand,
   parseColmiBattery,
@@ -14,6 +21,7 @@ export type BandConnection = {
   name: string;
   readBattery: () => Promise<BatteryInfo>;
   measure: (metric: LiveMetric) => Promise<LiveReading>;
+  readHistory: (day: string) => Promise<HistorySample[]>;
   disconnect: () => void;
 };
 
@@ -60,7 +68,10 @@ export async function connectBand(handlers: {
   const bluetooth = (navigator as unknown as { bluetooth: Bluetooth }).bluetooth;
   const channel = HALO_CHANNELS.primary;
   const device = await bluetooth.requestDevice({
-    filters: [{ services: [channel.service] }, { namePrefix: "Y25" }],
+    filters: [
+      { services: [channel.service] },
+      ...["Y25", "R02", "R06", "R10"].map((namePrefix) => ({ namePrefix })),
+    ],
     optionalServices: [channel.service],
   });
   handlers.signal?.throwIfAborted();
@@ -189,6 +200,26 @@ export async function connectBand(handlers: {
       id: device.id,
       name: device.name ?? "HALO BAND",
       disconnect,
+      readHistory: (day) =>
+        exclusive(async () => {
+          const now = new Date();
+          const stepsPacket = stepsRequest(day, now);
+          try {
+            const heartRates = await request(
+              heartRateRequest(day),
+              heartRateParser(day, now),
+              15_000,
+            );
+            const steps = await request(stepsPacket, stepsParser(day, now), 15_000);
+            return [...heartRates, ...steps];
+          } catch (error) {
+            if (!closed) {
+              disconnect();
+              handlers.onDisconnect?.();
+            }
+            throw error;
+          }
+        }),
       readBattery: () =>
         exclusive(() => request(makePrimaryCommand(0x03), parseColmiBattery, 10_000)),
       measure: (metric) =>

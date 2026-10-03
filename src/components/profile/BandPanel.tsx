@@ -1,3 +1,5 @@
+import { colmiLiveMeasurement, colmiMeasurements } from "@/lib/health/colmi";
+import { saveMeasurement, saveMeasurements } from "@/lib/health/storage";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/AppShell";
 import type { LiveMetric } from "@/lib/ble/halo-protocol";
@@ -19,6 +21,9 @@ export function BandPanel() {
   const [band, setBand] = useState<BandConnection | null>(null);
   const [live, setLive] = useState<Partial<Record<LiveMetric, number>>>({});
   const [measuring, setMeasuring] = useState<LiveMetric | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [historyDay, setHistoryDay] = useState(() => new Date().toISOString().slice(0, 10));
+  const [notice, setNotice] = useState<string | null>(null);
   const [charging, setCharging] = useState(false);
   const [readingBattery, setReadingBattery] = useState(false);
   const [battery, setBattery] = useState<number | null>(null);
@@ -35,6 +40,7 @@ export function BandPanel() {
     connectionRef.current?.disconnect();
     connectionRef.current = null;
     setBand(null);
+    setSyncing(false);
     setCharging(false);
     setLive({});
     setMeasuring(null);
@@ -42,6 +48,7 @@ export function BandPanel() {
     setBattery(null);
     setStatus("idle");
     setMessage(null);
+    setNotice(null);
   }
 
   async function handleConnect() {
@@ -50,6 +57,7 @@ export function BandPanel() {
     connectionRef.current?.disconnect();
     connectionRef.current = null;
     setBand(null);
+    setSyncing(false);
     setCharging(false);
     setLive({});
     setMeasuring(null);
@@ -58,6 +66,7 @@ export function BandPanel() {
     connectionAbort.current = new AbortController();
     setStatus("connecting");
     setMessage(null);
+    setNotice(null);
     try {
       const connection = await connectBand({
         signal: connectionAbort.current.signal,
@@ -71,6 +80,7 @@ export function BandPanel() {
           setBattery(null);
           setStatus("idle");
           setBand(null);
+          setSyncing(false);
         },
       });
       if (attempt !== connectionAttempt.current) {
@@ -91,6 +101,7 @@ export function BandPanel() {
   async function queryBattery(connection: BandConnection, attempt = connectionAttempt.current) {
     setReadingBattery(true);
     setMessage(null);
+    setNotice(null);
     setBattery(null);
     try {
       const result = await connection.readBattery();
@@ -112,6 +123,7 @@ export function BandPanel() {
     const attempt = connectionAttempt.current;
     setMeasuring(metric);
     setMessage(null);
+    setNotice(null);
     setLive((previous) => {
       const next = { ...previous };
       delete next[metric];
@@ -121,6 +133,9 @@ export function BandPanel() {
       const result = await connection.measure(metric);
       if (attempt === connectionAttempt.current && connectionRef.current === connection) {
         setLive((previous) => ({ ...previous, [metric]: result.value }));
+        await saveMeasurement(colmiLiveMeasurement(connection.id, result));
+        if (attempt === connectionAttempt.current && connectionRef.current === connection)
+          setNotice("Medição salva neste navegador.");
       }
     } catch (error) {
       if (attempt === connectionAttempt.current) {
@@ -128,6 +143,31 @@ export function BandPanel() {
       }
     } finally {
       if (attempt === connectionAttempt.current) setMeasuring(null);
+    }
+  }
+
+  async function syncHistory() {
+    const connection = connectionRef.current;
+    if (!connection) return;
+    const attempt = connectionAttempt.current;
+    setSyncing(true);
+    setMessage(null);
+    setNotice(null);
+    try {
+      const samples = await connection.readHistory(historyDay);
+      if (attempt !== connectionAttempt.current || connectionRef.current !== connection) return;
+      await saveMeasurements(colmiMeasurements(connection.id, samples));
+      if (attempt === connectionAttempt.current && connectionRef.current === connection)
+        setNotice(
+          samples.length
+            ? `${samples.length} registros salvos. Importar novamente atualiza os mesmos registros.`
+            : "Nenhum registro disponível para este dia.",
+        );
+    } catch (error) {
+      if (attempt === connectionAttempt.current)
+        setMessage(error instanceof Error ? error.message : "Falha ao importar histórico.");
+    } finally {
+      if (attempt === connectionAttempt.current) setSyncing(false);
     }
   }
 
@@ -194,7 +234,7 @@ export function BandPanel() {
       {status === "connected" && band && (
         <button
           type="button"
-          disabled={readingBattery || measuring !== null}
+          disabled={readingBattery || measuring !== null || syncing}
           onClick={() => void queryBattery(band)}
           className="relative z-10 rounded-full border border-border py-3 text-body-sm disabled:opacity-50"
         >
@@ -207,7 +247,7 @@ export function BandPanel() {
             <button
               key={metric}
               type="button"
-              disabled={readingBattery || measuring !== null}
+              disabled={readingBattery || measuring !== null || syncing}
               onClick={() => void measure(metric)}
               className="flex-1 rounded-full border border-border px-3 py-3 text-body-sm disabled:opacity-50"
             >
@@ -220,9 +260,39 @@ export function BandPanel() {
           ))}
         </div>
       )}
+      {status === "connected" && (
+        <div className="relative z-10 flex flex-col gap-2">
+          <label htmlFor="colmi-history-day" className="text-body-sm">
+            Histórico de batimentos e passos · dia UTC
+          </label>
+          <input
+            id="colmi-history-day"
+            type="date"
+            value={historyDay}
+            min={new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)}
+            max={new Date().toISOString().slice(0, 10)}
+            disabled={syncing}
+            onChange={(event) => setHistoryDay(event.target.value)}
+            className="rounded-lg border border-border bg-card p-3 text-on-background"
+          />
+          <button
+            type="button"
+            disabled={readingBattery || measuring !== null || syncing || !historyDay}
+            onClick={() => void syncHistory()}
+            className="rounded-full border border-border py-3 text-body-sm disabled:opacity-50"
+          >
+            {syncing ? "Importando…" : "Importar histórico"}
+          </button>
+          <p className="text-body-sm text-on-surface-variant">
+            Últimos sete dias. O cliente Colmi interpreta o relógio da pulseira em UTC. Use a
+            importação apenas se ela estiver configurada nesse horário; o HALO não altera o relógio.
+            Um relógio configurado pelo QRing em horário local pode deslocar os registros.
+          </p>
+        </div>
+      )}
       <p className="relative z-10 text-body-sm text-on-surface-variant">
         Use a pulseira e mantenha-se parado durante a medição (até 45 segundos). Valores
-        experimentais desta sessão; ainda não são salvos nem usados no score.
+        experimentais salvos neste navegador, sem backup na nuvem. Não são usados no score.
       </p>
       <p className="relative z-10 text-body-sm text-on-surface-variant">
         Feche a conexão no QRing e no nRF Connect antes de conectar. A bateria usa compatibilidade
@@ -231,6 +301,11 @@ export function BandPanel() {
       {!supported && (
         <p className="relative z-10 text-body-sm text-on-surface-variant">
           Este navegador não suporta Bluetooth. Abra no Chrome para Android para parear a BAND.
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="relative z-10 text-body-sm text-on-surface-variant">
+          {notice}
         </p>
       )}
       {message && <p className="relative z-10 text-body-sm text-destructive">{message}</p>}
