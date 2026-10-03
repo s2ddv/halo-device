@@ -4,13 +4,13 @@ import { Icon } from "@/components/AppShell";
 export const Route = createFileRoute("/recovery")({
   head: () => ({
     meta: [
-      { title: "Recuperação e estresse — Vital" },
+      { title: "Recuperação e estresse — HALO" },
       {
         name: "description",
         content:
           "Pontuações de 0 a 100 para o nível de estresse e a capacidade de recuperação do seu corpo, medidas pela BAND.",
       },
-      { property: "og:title", content: "Recuperação e estresse — Vital" },
+      { property: "og:title", content: "Recuperação e estresse — HALO" },
       {
         property: "og:description",
         content: "Veja como seu corpo está se recuperando e qual seu nível de estresse hoje.",
@@ -83,7 +83,7 @@ function RecoveryPage() {
         </p>
       </header>
 
-      <section className="flex gap-sm rounded-xl border border-border bg-card p-md">
+      <section className="flex flex-wrap gap-sm rounded-xl border border-border bg-card p-md">
         <Ring value={recovery} label="Recuperação" colorVar="--activity" />
         <Ring value={stress} label="Estresse" colorVar="--heart" />
       </section>
@@ -106,19 +106,26 @@ function RecoveryPage() {
           ))}
         </div>
         <span className="text-body-sm text-on-surface-variant">
-          Pico às 15h — provavelmente carga de trabalho. Respirações lentas ajudam a baixar rápido.
+          Distribuição ilustrativa. Não é possível inferir a causa de uma variação sem dados e
+          contexto.
         </span>
       </section>
 
       <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
         <span className="font-numeric text-label-caps text-on-background">O que fazer agora</span>
         {[
-          { icon: "bolt", text: "Recuperação alta: dá pra treinar forte hoje." },
+          {
+            icon: "bolt",
+            text: "Recuperação é uma estimativa que precisa de histórico suficiente.",
+          },
           {
             icon: "self_improvement",
-            text: "5 min de respiração baixam o estresse em média 8 pontos.",
+            text: "O exemplo não representa uma medição real de estresse.",
           },
-          { icon: "bedtime", text: "Dormir 30 min mais cedo sobe sua recuperação de amanhã." },
+          {
+            icon: "bedtime",
+            text: "Acompanhe seus hábitos ao longo do tempo para conhecer seu padrão.",
+          },
         ].map((t) => (
           <div key={t.text} className="flex items-start gap-sm">
             <Icon name={t.icon} className="text-[18px] text-on-surface-variant" />
@@ -128,7 +135,7 @@ function RecoveryPage() {
       </section>
 
       <p className="pb-md text-[11px] leading-4 text-on-surface-variant/70">
-        Vital é um app de bem-estar. As pontuações são orientações motivacionais e não substituem
+        HALO é um app de bem-estar. As pontuações são orientações motivacionais e não substituem
         avaliação médica.
       </p>
     </div>
