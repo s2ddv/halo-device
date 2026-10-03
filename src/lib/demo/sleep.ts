@@ -1,0 +1,55 @@
+export const sleepPhases = [
+  { label: "Acordado", minutes: 25, color: "--heart", level: 0 },
+  { label: "REM", minutes: 100, color: "--oxygen", level: 1 },
+  { label: "Sono leve", minutes: 230, color: "--sleep-light", level: 2 },
+  { label: "Sono profundo", minutes: 110, color: "--sleep", level: 3 },
+];
+export const sleepSegments = [
+  { phase: 2, minutes: 35 },
+  { phase: 3, minutes: 45 },
+  { phase: 2, minutes: 40 },
+  { phase: 1, minutes: 25 },
+  { phase: 0, minutes: 10 },
+  { phase: 2, minutes: 50 },
+  { phase: 3, minutes: 35 },
+  { phase: 1, minutes: 35 },
+  { phase: 2, minutes: 45 },
+  { phase: 0, minutes: 15 },
+  { phase: 3, minutes: 30 },
+  { phase: 2, minutes: 60 },
+  { phase: 1, minutes: 40 },
+];
+export const nightSignals = [
+  {
+    title: "Frequência cardíaca noturna",
+    icon: "favorite",
+    value: "54",
+    unit: "bpm · média",
+    color: "--heart",
+    values: [60, 57, 54, 52, 48, 55, 53, 58],
+  },
+  {
+    title: "Oxigenação (SpO₂)",
+    icon: "air",
+    value: "97",
+    unit: "% · média noturna",
+    color: "--oxygen",
+    values: [98, 97, 96, 95, 98, 97, 99, 98],
+  },
+  {
+    title: "Variabilidade da FC (HRV)",
+    icon: "ecg_heart",
+    value: "62",
+    unit: "ms · RMSSD ilustrativo",
+    color: "--sleep-light",
+    values: [55, 60, 57, 66, 62, 69, 64, 63],
+  },
+  {
+    title: "Temperatura da pele",
+    icon: "device_thermostat",
+    value: "−0,2",
+    unit: "°C · desvio ilustrativo",
+    color: "--activity",
+    values: [0, -0.1, -0.2, -0.4, -0.3, -0.2, -0.1, 0],
+  },
+];
