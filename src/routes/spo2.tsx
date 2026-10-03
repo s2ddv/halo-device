@@ -1,79 +1,79 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
 import { Icon } from "@/components/AppShell";
-import { LineChart, MinAvgMax, MultiDaySelector } from "@/components/MetricChart";
-import { lastDays, spo2Series, stats } from "@/lib/metrics";
-
+import { MetricCard } from "@/components/health/Visuals";
+import {
+  DetailLayout,
+  useDetailPeriod,
+  SummaryNumbers,
+  TrendCard,
+  DistributionCard,
+  MetricNote,
+  ExportDemo,
+} from "@/components/metrics/DetailLayout";
+import { detailSeries, summarize, distribution } from "@/lib/demo/detail";
 export const Route = createFileRoute("/spo2")({
-  head: () => ({
-    meta: [
-      { title: "Oxigenação do sangue — HALO" },
-      {
-        name: "description",
-        content:
-          "Acompanhe sua saturação de oxigênio (SpO2) com mínima, média e máxima e compare vários dias no mesmo gráfico.",
-      },
-      { property: "og:title", content: "Oxigenação do sangue — HALO" },
-      {
-        property: "og:description",
-        content: "SpO2 mínima, média e máxima com gráfico temporal por dia.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: Spo2Page,
+  head: () => ({ meta: [{ title: "Oxigênio no sangue — HALO" }] }),
+  component: OxygenPage,
 });
-
-function Spo2Page() {
-  const days = useMemo(() => lastDays(14), []);
-  const [selected, setSelected] = useState<string[]>(days.slice(-3).map((d) => d.key));
-
-  const series = useMemo(
-    () =>
-      days
-        .filter((d) => selected.includes(d.key))
-        .map((d) => ({ key: d.key, points: spo2Series(d.key) })),
-    [days, selected],
-  );
-  const s = stats(series.flatMap((x) => x.points));
-
-  function toggle(key: string) {
-    setSelected((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key].sort(),
-    );
-  }
-
+function OxygenPage() {
+  const controls = useDetailPeriod();
+  const points = detailSeries("oxygen", controls.period, controls.day);
+  const s = summarize(points);
+  const rows = distribution(points, [
+    { label: "98–100%", min: 98, max: 100, color: "--oxygen" },
+    { label: "95–97%", min: 95, max: 97, color: "--sleep" },
+    { label: "Abaixo de 95%", min: 0, max: 94, color: "--activity" },
+  ]);
   return (
-    <div className="flex w-full flex-col gap-md px-container-padding pt-md">
-      <header className="flex flex-col gap-1">
-        <span className="font-numeric text-label-caps uppercase tracking-widest text-on-surface-variant">
-          {selected.length} dia{selected.length === 1 ? "" : "s"} selecionado
-          {selected.length === 1 ? "" : "s"}
-        </span>
-        <h1 className="font-display text-headline-mobile text-on-background">Oxigenação</h1>
-      </header>
-
-      <MultiDaySelector days={days} selected={selected} onToggle={toggle} />
-
-      {series.length > 0 ? (
-        <MinAvgMax min={s.min} avg={s.avg} max={s.max} unit="%" colorVar="--oxygen" />
-      ) : null}
-
-      <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
-        <div className="flex items-center gap-2">
-          <Icon name="air" className="text-[16px] text-oxygen" />
-          <span className="font-numeric text-label-caps text-on-background">
-            SpO2 ao longo do dia
-          </span>
-        </div>
-        <LineChart series={series} colorVar="--oxygen" />
-      </section>
-
-      <p className="text-body-sm text-on-surface-variant">
-        Entre 95% e 100% é a faixa considerada saudável. Toque nos dias para incluir ou remover do
-        gráfico.
-      </p>
-    </div>
+    <DetailLayout
+      title="Oxigênio no sangue"
+      eyebrow="Respiratório & biometria"
+      color="--oxygen"
+      controls={controls}
+    >
+      <div className="page-grid items-start">
+        <MetricCard color="--oxygen">
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-widest text-on-surface-variant">
+              Última amostra · demo
+            </span>
+            <Icon name="water_drop" className="text-oxygen" />
+          </div>
+          <p className="my-6 font-numeric text-[72px] font-bold leading-none">
+            {points.at(-1)?.v}
+            <span className="ml-2 text-title-md text-on-surface-variant">%</span>
+          </p>
+          <p className="text-body-sm leading-relaxed text-on-surface-variant">
+            Visualização de saturação SpO₂. Os valores são exemplos do layout e não uma avaliação da
+            sua oxigenação.
+          </p>
+        </MetricCard>
+        <TrendCard
+          title={controls.period === "day" ? "Distribuição contínua · 24h" : "SpO₂ no período"}
+          eyebrow="Biomonitoramento"
+          points={points}
+          color="--oxygen"
+        />
+      </div>
+      <SummaryNumbers
+        items={[
+          {
+            label: "Média",
+            value: s.avg.toFixed(1).replace(".", ","),
+            unit: "%",
+            icon: "equalizer",
+          },
+          { label: "Mínimo", value: String(s.min), unit: "%", icon: "arrow_downward" },
+          { label: "Máximo", value: String(s.max), unit: "%", icon: "arrow_upward" },
+        ]}
+      />
+      <DistributionCard title="Composição da saturação" rows={rows} />
+      <MetricNote title="Oxigenação noturna" icon="bedtime">
+        O gráfico inclui valores ilustrativos mais baixos durante a noite. Sem uma fonte validada,
+        não é possível atribuí-los a fases do sono ou concluir que uma variação é segura. Nenhum
+        alerta clínico é produzido por esta prévia.
+      </MetricNote>
+      <ExportDemo metric="spo2" controls={controls} points={points} />
+    </DetailLayout>
   );
 }
