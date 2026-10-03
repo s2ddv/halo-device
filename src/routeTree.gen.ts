@@ -18,6 +18,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SleepRouteImport } from './routes/sleep'
 import { Route as Spo2RouteImport } from './routes/spo2'
 import { Route as StressRouteImport } from './routes/stress'
+import { Route as TemperatureRouteImport } from './routes/temperature'
 import { Route as WorkoutRouteImport } from './routes/workout'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const StressRoute = StressRouteImport.update({
   path: '/stress',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TemperatureRoute = TemperatureRouteImport.update({
+  id: '/temperature',
+  path: '/temperature',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkoutRoute = WorkoutRouteImport.update({
   id: '/workout',
   path: '/workout',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/sleep': typeof SleepRoute
   '/spo2': typeof Spo2Route
   '/stress': typeof StressRoute
+  '/temperature': typeof TemperatureRoute
   '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/sleep': typeof SleepRoute
   '/spo2': typeof Spo2Route
   '/stress': typeof StressRoute
+  '/temperature': typeof TemperatureRoute
   '/workout': typeof WorkoutRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/sleep': typeof SleepRoute
   '/spo2': typeof Spo2Route
   '/stress': typeof StressRoute
+  '/temperature': typeof TemperatureRoute
   '/workout': typeof WorkoutRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/sleep'
     | '/spo2'
     | '/stress'
+    | '/temperature'
     | '/workout'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/sleep'
     | '/spo2'
     | '/stress'
+    | '/temperature'
     | '/workout'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/sleep'
     | '/spo2'
     | '/stress'
+    | '/temperature'
     | '/workout'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   SleepRoute: typeof SleepRoute
   Spo2Route: typeof Spo2Route
   StressRoute: typeof StressRoute
+  TemperatureRoute: typeof TemperatureRoute
   WorkoutRoute: typeof WorkoutRoute
 }
 
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/temperature': {
+      id: '/temperature'
+      path: '/temperature'
+      fullPath: '/temperature'
+      preLoaderRoute: typeof TemperatureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workout': {
       id: '/workout'
       path: '/workout'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   SleepRoute: SleepRoute,
   Spo2Route: Spo2Route,
   StressRoute: StressRoute,
+  TemperatureRoute: TemperatureRoute,
   WorkoutRoute: WorkoutRoute,
 }
 export const routeTree = rootRouteImport
