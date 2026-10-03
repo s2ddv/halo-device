@@ -1,35 +1,20 @@
-import { HealthDataStatus } from "@/components/HealthDataStatus";
-import { activeDaysLast30, dailyHistory, todaySubScores } from "@/lib/demo/scoring";
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Icon } from "@/components/AppShell";
-import type { LiveMetric } from "@/lib/ble/halo-protocol";
-import { connectBand, isBluetoothSupported, type BandConnection } from "@/lib/band-ble";
-import { FOCUS_META, GOAL_META, usePreferences, type FocusMode } from "@/lib/preferences";
-import {
-  SUB_SCORE_META,
-  LEVEL_COLORS,
-  dailyScore,
-  isRanked,
-  levelProgress,
-  levelScore,
-  type SubScoreKey,
-} from "@/lib/scoring";
-import { activityHeatmap, HEATMAP_LEVEL_OPACITY, type ActivityDay } from "@/lib/metrics";
+import { HealthDataStatus } from "@/components/HealthDataStatus";
+import { BandPanel } from "@/components/profile/BandPanel";
+import { SettingsPanel } from "@/components/profile/SettingsPanel";
+import { ScorePanel } from "@/components/profile/ScorePanel";
+import { InfoDialog } from "@/components/health/InfoDialog";
+import { usePreferences } from "@/lib/preferences";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Perfil e pontuação — HALO" },
+      { title: "Meu perfil — HALO" },
       {
         name: "description",
-        content:
-          "Conecte sua BAND, veja seu score diário, sub-scores de 0 a 100, nível pessoal e progresso até o próximo nível.",
-      },
-      { property: "og:title", content: "Perfil e pontuação — HALO" },
-      {
-        property: "og:description",
-        content: "Score diário, sub-scores, nível pessoal e atividade recente na HALO.",
+        content: "Dispositivo, metas pessoais, privacidade e histórico local no HALO.",
       },
     ],
   }),
@@ -39,711 +24,155 @@ export const Route = createFileRoute("/profile")({
 function Profile() {
   const [tab, setTab] = useState<"perfil" | "pontuacao" | "config">("perfil");
   const [scoreTab, setScoreTab] = useState<"hoje" | "ranking">("hoje");
-
+  const { preferences } = usePreferences();
   return (
-    <div className="flex w-full flex-col gap-md px-container-padding pt-md">
-      <div className="flex rounded-full bg-surface-container-high p-1">
+    <div className="flex flex-col gap-md px-container-padding pt-md">
+      <header>
+        <h1 className="font-display text-headline-mobile">Meu perfil</h1>
+        <p className="mt-1 text-body-sm text-on-surface-variant">Seu espaço de cuidado pessoal</p>
+      </header>
+      <div className="segmented-control" aria-label="Seção do perfil">
         {(
           [
             { id: "perfil", label: "Perfil" },
             { id: "pontuacao", label: "Pontuação" },
-            { id: "config", label: "Config" },
+            { id: "config", label: "Preferências" },
           ] as const
-        ).map((t) => (
+        ).map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
-            onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-full py-2.5 font-numeric text-label-caps uppercase tracking-widest transition-colors ${
-              tab === t.id ? "bg-primary text-primary-foreground" : "text-on-surface-variant"
-            }`}
+            aria-pressed={tab === item.id}
+            onClick={() => setTab(item.id)}
           >
-            {t.label}
+            {item.label}
           </button>
         ))}
       </div>
-
-      {tab === "perfil" ? (
-        <ProfileTab />
-      ) : tab === "pontuacao" ? (
-        <ScoreTab scoreTab={scoreTab} onScoreTab={setScoreTab} />
-      ) : (
-        <SettingsTab />
-      )}
-    </div>
-  );
-}
-
-function ProfileTab() {
-  const connectionRef = useRef<BandConnection | null>(null);
-  const connectionAttempt = useRef(0);
-  const connectionAbort = useRef<AbortController | null>(null);
-  useEffect(
-    () => () => {
-      connectionAttempt.current += 1;
-      connectionAbort.current?.abort();
-      connectionRef.current?.disconnect();
-    },
-    [],
-  );
-  const [supported, setSupported] = useState(false);
-  const [band, setBand] = useState<BandConnection | null>(null);
-  const [live, setLive] = useState<Partial<Record<LiveMetric, number>>>({});
-  const [measuring, setMeasuring] = useState<LiveMetric | null>(null);
-  const [charging, setCharging] = useState(false);
-  const [readingBattery, setReadingBattery] = useState(false);
-  const [battery, setBattery] = useState<number | null>(null);
-  const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
-  const [message, setMessage] = useState<string | null>(null);
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    setSupported(isBluetoothSupported());
-    setOnline(navigator.onLine);
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
-
-  function handleDisconnect() {
-    connectionAttempt.current += 1;
-    connectionAbort.current?.abort();
-    connectionRef.current?.disconnect();
-    connectionRef.current = null;
-    setBand(null);
-    setCharging(false);
-    setLive({});
-    setMeasuring(null);
-    setReadingBattery(false);
-    setBattery(null);
-    setStatus("idle");
-    setMessage(null);
-  }
-
-  async function handleConnect() {
-    const attempt = ++connectionAttempt.current;
-    connectionAbort.current?.abort();
-    connectionRef.current?.disconnect();
-    connectionRef.current = null;
-    setBand(null);
-    setCharging(false);
-    setLive({});
-    setMeasuring(null);
-    setReadingBattery(false);
-    setBattery(null);
-    connectionAbort.current = new AbortController();
-    setStatus("connecting");
-    setMessage(null);
-    try {
-      const connection = await connectBand({
-        signal: connectionAbort.current.signal,
-        onDisconnect: () => {
-          if (attempt !== connectionAttempt.current) return;
-          connectionRef.current = null;
-          setCharging(false);
-          setLive({});
-          setMeasuring(null);
-          setReadingBattery(false);
-          setBattery(null);
-          setStatus("idle");
-          setBand(null);
-        },
-      });
-      if (attempt !== connectionAttempt.current) {
-        connection.disconnect();
-        return;
-      }
-      connectionRef.current = connection;
-      setBand(connection);
-      setStatus("connected");
-      await queryBattery(connection, attempt);
-    } catch (error) {
-      if (attempt !== connectionAttempt.current) return;
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Não foi possível conectar.");
-    }
-  }
-
-  async function queryBattery(connection: BandConnection, attempt = connectionAttempt.current) {
-    setReadingBattery(true);
-    setMessage(null);
-    setBattery(null);
-    try {
-      const result = await connection.readBattery();
-      if (attempt !== connectionAttempt.current || connectionRef.current !== connection) return;
-      setBattery(result.level);
-      setCharging(result.charging);
-    } catch (error) {
-      if (attempt === connectionAttempt.current && connectionRef.current === connection) {
-        setMessage(error instanceof Error ? error.message : "Falha ao consultar bateria.");
-      }
-    } finally {
-      if (attempt === connectionAttempt.current) setReadingBattery(false);
-    }
-  }
-
-  async function measure(metric: LiveMetric) {
-    const connection = connectionRef.current;
-    if (!connection) return;
-    const attempt = connectionAttempt.current;
-    setMeasuring(metric);
-    setMessage(null);
-    setLive((previous) => {
-      const next = { ...previous };
-      delete next[metric];
-      return next;
-    });
-    try {
-      const result = await connection.measure(metric);
-      if (attempt === connectionAttempt.current && connectionRef.current === connection) {
-        setLive((previous) => ({ ...previous, [metric]: result.value }));
-      }
-    } catch (error) {
-      if (attempt === connectionAttempt.current) {
-        setMessage(error instanceof Error ? error.message : "Falha na medição.");
-      }
-    } finally {
-      if (attempt === connectionAttempt.current) setMeasuring(null);
-    }
-  }
-
-  return (
-    <>
-      <section className="flex items-center gap-md">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-          <Icon name="person" className="text-[28px] text-primary-foreground" />
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <span className="font-display text-headline-mobile text-on-background">Samuel</span>
-            <span
-              className="flex items-center gap-1 rounded-full px-2 py-0.5 font-numeric text-[10px] uppercase tracking-widest"
-              style={{
-                color: "var(--verified)",
-                backgroundColor: "color-mix(in oklab, var(--verified) 18%, transparent)",
-              }}
-              title="Perfil verificado"
-            >
-              <Icon name="verified" className="text-[14px]" />
-              Verificado
+      {/* Keep the device panel mounted when changing tabs, preserving the connection. */}
+      <div
+        hidden={tab !== "perfil"}
+        className={tab === "perfil" ? "flex flex-col gap-md" : undefined}
+      >
+        <section className="flex flex-col items-center gap-3 py-5">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-surface-container-high ring-1 ring-border">
+            <Icon name="person" className="text-[40px]" />
+          </div>
+          <h2 className="font-display text-headline-mobile">Seu perfil HALO</h2>
+          <div className="flex gap-2">
+            <span className="rounded-full bg-surface-container-high px-3 py-1.5 text-xs">
+              Pessoal
+            </span>
+            <span className="rounded-full border border-border px-3 py-1.5 text-xs">
+              Neste navegador
             </span>
           </div>
-          <span className="text-body-sm text-on-surface-variant">🇧🇷 Brasil</span>
-        </div>
-      </section>
-
-      <HealthDataStatus />
-      <ActivitySection />
-
-      <section className="relative flex flex-col gap-md overflow-hidden rounded-xl border border-border bg-card p-md">
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent to-oxygen/15 opacity-60" />
-        <div className="relative z-10 flex items-start justify-between">
-          <div className="flex flex-col">
-            <span className="font-numeric text-label-caps text-on-background">
-              Dispositivo · conexão experimental
-            </span>
-            <span className="font-display text-title-md text-on-background">
-              {band?.name ?? "Nenhuma BAND conectada"}
-            </span>
+        </section>
+        <div className="page-grid items-start">
+          <div className="flex flex-col gap-md">
+            <h2 className="font-display text-title-md">Dispositivos conectados</h2>
+            <BandPanel />
+            <HealthDataStatus />
           </div>
-          <span
-            className={`rounded-full px-3 py-1 font-numeric text-[10px] uppercase tracking-widest ${
-              status === "connected"
-                ? "bg-oxygen/20 text-oxygen"
-                : "bg-surface-container-high text-on-surface-variant"
-            }`}
-          >
-            {status === "connected"
-              ? "Conectada"
-              : status === "connecting"
-                ? "Conectando"
-                : "Desconectada"}
-          </span>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-2 gap-sm">
-          <div className="flex flex-col gap-1 rounded-lg bg-surface-container-low p-sm">
-            <span className="font-numeric text-[10px] text-on-surface-variant">
-              Leituras de saúde
-            </span>
-            <span className="font-numeric text-title-md text-on-background">
-              {live.heartRate != null ? `${live.heartRate} bpm` : "— bpm"}
-              {" · "}
-              {live.spo2 != null ? `${live.spo2}% SpO₂` : "— SpO₂"}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 rounded-lg bg-surface-container-low p-sm">
-            <span className="font-numeric text-[10px] text-on-surface-variant">Bateria</span>
-            <span className="font-numeric text-title-md text-on-background">
-              {readingBattery
-                ? "Consultando…"
-                : battery != null
-                  ? `${battery}%${charging ? " · carregando" : ""}`
-                  : "—"}
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={status === "connected" ? handleDisconnect : handleConnect}
-          disabled={!supported || status === "connecting"}
-          className="relative z-10 flex items-center justify-center gap-2 rounded-full bg-primary py-4 font-numeric text-label-caps uppercase tracking-widest text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
-        >
-          <Icon name="bluetooth_searching" className="text-[18px]" />
-          {status === "connected" ? "Desconectar" : "Procurar dispositivo"}
-        </button>
-
-        {status === "connected" && band && (
-          <button
-            type="button"
-            disabled={readingBattery || measuring !== null}
-            onClick={() => void queryBattery(band)}
-            className="relative z-10 rounded-full border border-border py-3 text-body-sm disabled:opacity-50"
-          >
-            Consultar bateria
-          </button>
-        )}
-        {status === "connected" && (
-          <div className="relative z-10 flex flex-wrap gap-2">
-            {(["heartRate", "spo2"] as const).map((metric) => (
-              <button
-                key={metric}
-                type="button"
-                disabled={readingBattery || measuring !== null}
-                onClick={() => void measure(metric)}
-                className="flex-1 rounded-full border border-border px-3 py-3 text-body-sm disabled:opacity-50"
-              >
-                {measuring === metric
-                  ? "Medindo…"
-                  : metric === "heartRate"
-                    ? "Medir batimentos"
-                    : "Medir SpO₂"}
-              </button>
-            ))}
-          </div>
-        )}
-        <p className="relative z-10 text-body-sm text-on-surface-variant">
-          Use a pulseira e mantenha-se parado durante a medição (até 45 segundos). Valores
-          experimentais desta sessão; ainda não são salvos nem usados no score.
-        </p>
-        <p className="relative z-10 text-body-sm text-on-surface-variant">
-          Feche a conexão no QRing e no nRF Connect antes de conectar. A bateria usa compatibilidade
-          experimental com QRing; as leituras de saúde ainda não alimentam o score.
-        </p>
-        {!supported && (
-          <p className="relative z-10 text-body-sm text-on-surface-variant">
-            Este navegador não suporta Bluetooth. Abra no Chrome para Android para parear a BAND.
-          </p>
-        )}
-        {message && <p className="relative z-10 text-body-sm text-destructive">{message}</p>}
-      </section>
-
-      <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
-        <span className="font-numeric text-label-caps text-on-background">Sincronização</span>
-        <div className="flex items-center gap-2">
-          <Icon
-            name={online ? "cloud_done" : "cloud_off"}
-            className="text-[18px] text-on-surface-variant"
-          />
-          <span className="text-body-sm text-on-surface-variant">
-            {online
-              ? "Online — sem sincronização com a nuvem."
-              : "Offline — o histórico salvo permanece neste navegador."}
-          </span>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function SettingsTab() {
-  const { preferences, setGoal, setFocus, resetGoals } = usePreferences();
-
-  return (
-    <div className="flex flex-col gap-md">
-      {/* Metas personalizadas */}
-      <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
-        <div className="flex items-center justify-between">
-          <span className="font-numeric text-label-caps text-on-background">Minhas metas</span>
-          <button
-            type="button"
-            onClick={resetGoals}
-            className="font-numeric text-[10px] uppercase tracking-widest text-on-surface-variant"
-          >
-            Restaurar padrão
-          </button>
-        </div>
-        {GOAL_META.map((g) => (
-          <div key={g.key} className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <Icon name={g.icon} className="text-[16px] text-on-surface-variant" />
-              <span className="flex-1 text-body-sm text-on-background">{g.label}</span>
-              <span className="font-numeric text-[13px] text-on-background">
-                {preferences.goals[g.key].toLocaleString("pt-BR")} {g.unit}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={g.min}
-              max={g.max}
-              step={g.step}
-              value={preferences.goals[g.key]}
-              onChange={(e) => setGoal(g.key, Number(e.target.value))}
-              aria-label={g.label}
-              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-container-high accent-primary"
-              style={{ accentColor: `var(${g.colorVar})` }}
-            />
-          </div>
-        ))}
-      </section>
-
-      {/* Modo Foco */}
-      <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
-        <span className="font-numeric text-label-caps text-on-background">Modo Foco</span>
-        <p className="text-body-sm text-on-surface-variant">
-          Escolha o que quer priorizar. As métricas relacionadas ganham destaque na tela inicial.
-        </p>
-        <button
-          type="button"
-          onClick={() => setFocus("none")}
-          className={`flex items-center gap-md rounded-xl border px-md py-3 text-left ${
-            preferences.focus === "none"
-              ? "border-primary bg-surface-container-high"
-              : "border-border"
-          }`}
-        >
-          <Icon name="tune" className="text-[18px] text-on-surface-variant" />
-          <span className="flex-1 text-body-lg text-on-background">Sem foco</span>
-          {preferences.focus === "none" && (
-            <Icon name="check_circle" className="text-[18px] text-primary" />
-          )}
-        </button>
-        {(Object.keys(FOCUS_META) as Exclude<FocusMode, "none">[]).map((key) => {
-          const f = FOCUS_META[key];
-          const active = preferences.focus === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFocus(key)}
-              className={`flex items-start gap-md rounded-xl border px-md py-3 text-left ${
-                active ? "bg-surface-container-high" : "border-border"
-              }`}
-              style={active ? { borderColor: `var(${f.colorVar})` } : undefined}
-            >
-              <Icon name={f.icon} className="mt-0.5 text-[18px]" />
-              <span className="flex flex-1 flex-col gap-0.5">
-                <span className="text-body-lg text-on-background">{f.label}</span>
-                <span className="text-body-sm text-on-surface-variant">{f.description}</span>
-              </span>
-              {active && <Icon name="check_circle" className="text-[18px] text-primary" />}
-            </button>
-          );
-        })}
-      </section>
-
-      <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-        {[
-          { icon: "notifications", label: "Notificações" },
-          { icon: "shield", label: "Privacidade dos dados" },
-          { icon: "help", label: "Ajuda" },
-        ].map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className="flex items-center gap-md border-b border-border px-md py-4 text-left last:border-b-0"
-          >
-            <Icon name={item.icon} className="text-[18px] text-on-surface-variant" />
-            <span className="flex-1 text-body-lg text-on-background">{item.label}</span>
-            <Icon name="chevron_right" className="text-[16px] text-on-surface-variant" />
-          </button>
-        ))}
-      </section>
-
-      <p className="text-body-sm text-on-surface-variant">
-        Metas e Modo Foco ficam salvos apenas neste aparelho e nunca são compartilhados.
-      </p>
-    </div>
-  );
-}
-
-function ActivitySection() {
-  const grid = useMemo(() => activityHeatmap(20), []);
-  const [day, setDay] = useState<ActivityDay | null>(null);
-
-  return (
-    <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
-      <div className="flex items-baseline justify-between">
-        <span className="font-numeric text-label-caps text-on-background">Atividade recente</span>
-        <span className="font-numeric text-[10px] text-on-surface-variant">Últimas 20 semanas</span>
-      </div>
-
-      <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <div className="flex gap-1">
-          {grid.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-1">
-              {week.map((d) => (
+          <div className="flex flex-col gap-md">
+            <h2 className="font-display text-title-md">Metas de saúde</h2>
+            <div className="grid grid-cols-2 gap-sm">
+              {[
+                {
+                  label: "Passos diários",
+                  value: preferences.goals.steps.toLocaleString("pt-BR"),
+                  unit: "passos / dia",
+                  icon: "directions_run",
+                  color: "text-activity",
+                },
+                {
+                  label: "Meta de sono",
+                  value: preferences.goals.sleepHours.toLocaleString("pt-BR"),
+                  unit: "horas / noite",
+                  icon: "bedtime",
+                  color: "text-sleep",
+                },
+              ].map((goal) => (
                 <button
-                  key={d.key}
                   type="button"
-                  onClick={() => setDay(d)}
-                  title={`${d.label} · ${d.events.length} atividades`}
-                  className="h-3 w-3 rounded-[3px] transition-transform active:scale-90"
-                  style={{
-                    backgroundColor: "var(--activity)",
-                    opacity: HEATMAP_LEVEL_OPACITY[d.level],
-                  }}
-                />
+                  key={goal.label}
+                  onClick={() => setTab("config")}
+                  className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 text-left"
+                  aria-label={`Editar ${goal.label}`}
+                >
+                  <span className="flex w-full items-center justify-between">
+                    <Icon name={goal.icon} className={goal.color} />
+                    <Icon name="edit" className="text-[16px] text-on-surface-variant" />
+                  </span>
+                  <span className="text-body-sm">{goal.label}</span>
+                  <strong className="font-numeric text-2xl">{goal.value}</strong>
+                  <span className="text-xs text-on-surface-variant">{goal.unit}</span>
+                </button>
               ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end gap-1.5">
-        <span className="font-numeric text-[10px] text-on-surface-variant">Menos</span>
-        {[0, 1, 2, 3, 4].map((l) => (
-          <span
-            key={l}
-            className="h-3 w-3 rounded-[3px]"
-            style={{ backgroundColor: "var(--activity)", opacity: HEATMAP_LEVEL_OPACITY[l] }}
-          />
-        ))}
-        <span className="font-numeric text-[10px] text-on-surface-variant">Mais</span>
-      </div>
-
-      {day && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4"
-          onClick={() => setDay(null)}
-        >
-          <div
-            className="w-full max-w-[430px] rounded-xl border border-border bg-card p-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-md flex items-center justify-between">
-              <span className="font-display text-title-md text-on-background">{day.label}</span>
-              <button
-                type="button"
-                onClick={() => setDay(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant"
-              >
-                <Icon name="close" className="text-[16px]" />
-              </button>
-            </div>
-            {day.events.length === 0 ? (
-              <p className="text-body-sm text-on-surface-variant">
-                Nenhuma atividade registrada neste dia. Amanhã é um novo começo!
-              </p>
-            ) : (
-              <div className="flex flex-col gap-sm">
-                {day.events.map((e, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-high">
-                      <Icon name={e.icon} className="text-[18px] text-activity" />
-                    </div>
-                    <div className="flex flex-1 flex-col">
-                      <span className="text-body-lg text-on-background">{e.title}</span>
-                      <span className="text-body-sm text-on-surface-variant">{e.detail}</span>
-                    </div>
-                    <span className="font-numeric text-[10px] text-on-surface-variant">
-                      {e.time}
-                    </span>
-                  </div>
+            <Link
+              to="/progress"
+              className="flex items-center justify-between rounded-xl border border-border bg-card p-5"
+            >
+              <span className="flex items-center gap-3">
+                <Icon name="trending_up" />
+                Minha progressão
+              </span>
+              <Icon name="chevron_right" />
+            </Link>
+            <section className="flex flex-col gap-3">
+              <h2 className="font-display text-title-md">Conta e privacidade</h2>
+              <div className="overflow-hidden rounded-xl border border-border bg-card">
+                {[
+                  {
+                    title: "Privacidade dos dados",
+                    icon: "shield",
+                    description:
+                      "O histórico real fica no IndexedDB deste navegador. Não há conta, backup automático nem envio à nuvem. Apagar os dados do site remove o histórico local.",
+                  },
+                  {
+                    title: "Integrações",
+                    icon: "sync",
+                    description:
+                      "Apple Health, Health Connect e serviços externos ainda não estão integrados. A conexão Bluetooth experimental está disponível nesta página.",
+                  },
+                  {
+                    title: "Sobre o HALO",
+                    icon: "help",
+                    description:
+                      "O HALO acompanha bem-estar e progresso pessoal. As telas demonstrativas não descrevem sua saúde. A conexão proprietária da BAND está em validação e não fornece sono ou recuperação automaticamente.",
+                  },
+                ].map((item) => (
+                  <InfoDialog
+                    key={item.title}
+                    title={item.title}
+                    description={item.description}
+                    trigger={
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 border-b border-border p-4 text-left last:border-0"
+                      >
+                        <Icon name={item.icon} className="text-on-surface-variant" />
+                        <span className="flex-1 text-body-sm">{item.title}</span>
+                        <Icon name="chevron_right" className="text-[18px]" />
+                      </button>
+                    }
+                  />
                 ))}
               </div>
-            )}
+            </section>
           </div>
         </div>
-      )}
-    </section>
-  );
-}
-
-function ScoreTab({
-  scoreTab,
-  onScoreTab,
-}: {
-  scoreTab: "hoje" | "ranking";
-  onScoreTab: (t: "hoje" | "ranking") => void;
-}) {
-  return (
-    <>
-      <div className="flex gap-2">
-        {(
-          [
-            { id: "hoje", label: "Hoje" },
-            { id: "ranking", label: "Nível pessoal" },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onScoreTab(t.id)}
-            className={`flex-1 rounded-full border py-2 font-numeric text-label-caps uppercase tracking-widest transition-colors ${
-              scoreTab === t.id
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-on-surface-variant"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
       </div>
-      {scoreTab === "hoje" ? <TodayScore /> : <Ranking />}
-    </>
-  );
-}
-
-function TodayScore() {
-  const score = dailyScore(todaySubScores);
-  return (
-    <>
-      <section className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-md">
-        <span className="font-numeric text-label-caps uppercase tracking-widest text-on-surface-variant">
-          Score de hoje
-        </span>
-        <span className="font-numeric text-display-lg text-on-background">{score}</span>
-        <span className="text-body-sm text-on-surface-variant">de 1000 pontos possíveis</span>
-        <p className="mt-1 text-center text-body-sm text-on-surface-variant">
-          Soma ponderada dos seus sub-scores do dia. Dias sem usar a BAND valem 0 — constância é
-          tudo!
-        </p>
-      </section>
-
-      <section className="flex flex-col gap-md rounded-xl border border-border bg-card p-md">
-        <span className="font-numeric text-label-caps text-on-background">Sub-scores</span>
-        {(Object.keys(SUB_SCORE_META) as SubScoreKey[]).map((key) => {
-          const meta = SUB_SCORE_META[key];
-          const value = todaySubScores[key];
-          return (
-            <div key={key} className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Icon name={meta.icon} className="text-[16px] text-on-surface-variant" />
-                  <span className="text-body-sm text-on-background">{meta.label}</span>
-                </div>
-                <span className="font-numeric text-body-sm text-on-background">{value}/100</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${value}%`,
-                    backgroundColor: `var(${meta.colorVar})`,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </section>
-    </>
-  );
-}
-
-function Ranking() {
-  const lvlScore = levelScore(dailyHistory);
-  const progress = levelProgress(lvlScore);
-  const ranked = isRanked(activeDaysLast30);
-  const levelColor = LEVEL_COLORS[progress.level] ?? "var(--on-surface-variant)";
-  const max = Math.max(...dailyHistory);
-
-  return (
-    <>
-      <section className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-md">
-        {ranked ? (
-          <>
-            <div
-              className="flex h-24 w-24 flex-col items-center justify-center rounded-2xl border-2"
-              style={{ borderColor: levelColor, backgroundColor: "var(--card)" }}
-            >
-              <span
-                className="font-numeric text-display-lg leading-none"
-                style={{ color: levelColor }}
-              >
-                {progress.level}
-              </span>
-              <span className="font-numeric text-[10px] uppercase tracking-widest text-on-surface-variant">
-                Nível
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="font-numeric text-title-md text-on-background">{lvlScore} pts</span>
-              <span className="text-body-sm text-on-surface-variant">
-                Média dos últimos 30 dias
-              </span>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-1 py-2">
-            <Icon name="military_tech" className="text-[32px] text-on-surface-variant" />
-            <span className="font-display text-title-md text-on-background">Não classificado</span>
-            <span className="text-center text-body-sm text-on-surface-variant">
-              Exemplo de progressão pessoal; não representa seu histórico real.
-            </span>
-          </div>
-        )}
-
-        {ranked && (
-          <div className="flex w-full flex-col gap-1.5">
-            <div className="flex justify-between font-numeric text-[10px] text-on-surface-variant">
-              <span>
-                Nv. {progress.level} · {progress.min} pts
-              </span>
-              {progress.level < 10 && (
-                <span>
-                  Faltam {progress.toNext} pts · Nv. {progress.level + 1}
-                </span>
-              )}
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${progress.pct}%`, backgroundColor: levelColor }}
-              />
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-sm rounded-xl border border-border bg-card p-md">
-        <div className="flex items-baseline justify-between">
-          <span className="font-numeric text-label-caps text-on-background">
-            Evolução · 30 dias
-          </span>
-          <span className="font-numeric text-[10px] text-on-surface-variant">
-            {activeDaysLast30}/30 dias ativos
-          </span>
-        </div>
-        <div className="flex h-24 items-end gap-1">
-          {dailyHistory.map((d, i) => (
-            <div
-              key={i}
-              className="flex-1 rounded-t-sm"
-              style={{
-                height: `${d === 0 ? 4 : Math.max(8, (d / max) * 100)}%`,
-                backgroundColor: d === 0 ? "var(--surface-container-high)" : "var(--primary)",
-                opacity: d === 0 ? 0.5 : 0.4 + (d / max) * 0.6,
-              }}
-              title={d === 0 ? "Dia sem uso" : `${d} pts`}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-border bg-card p-md">
-        <p className="text-body-sm text-on-surface-variant">
-          Níveis de 0 a 10: seu Score de Nível é a média móvel dos scores diários. Continue ativo
-          para subir de patamar!
-        </p>
-      </section>
-    </>
+      {tab === "pontuacao" && (
+        <>
+          <p className="text-body-sm text-on-surface-variant">
+            Demonstração da pontuação. Para medições reais, consulte o histórico na aba Perfil.
+          </p>
+          <ScorePanel scoreTab={scoreTab} onScoreTab={setScoreTab} />
+        </>
+      )}
+      {tab === "config" && <SettingsPanel />}
+    </div>
   );
 }

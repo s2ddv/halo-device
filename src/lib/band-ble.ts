@@ -52,7 +52,9 @@ export async function connectBand(handlers: {
   signal?: AbortSignal;
 }): Promise<BandConnection> {
   if (!isBluetoothSupported()) {
-    throw new Error("Bluetooth indisponível. Abra no Chrome para Android usando HTTPS.");
+    throw new Error(
+      "Este navegador não suporta Web Bluetooth (por exemplo, Safari no iOS). Abra no Chrome para Android usando HTTPS.",
+    );
   }
   handlers.signal?.throwIfAborted();
   const bluetooth = (navigator as unknown as { bluetooth: Bluetooth }).bluetooth;
